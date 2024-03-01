@@ -38,5 +38,8 @@ export const KeysRdfJoin = {
 };
 
 export const KeyFilter = {
-  filter: new ActionContextKey<Map<string, FilterFunction>>('@comunica/bus-extract-links:filter'),
+  /**
+   * Link filters for the link queue.
+   */
+  filters: new ActionContextKey<Map<string, FilterFunction>>('@comunica/bus-extract-links:filter'),
 };

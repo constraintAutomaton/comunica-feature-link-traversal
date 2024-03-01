@@ -117,7 +117,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const query: string = action.context.get(KeysInitQuery.queryString)!;
     const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex, query);
     const filters = this.generateFilters(filteredResource);
-    action.context.set(KeyFilter.filter, filters);
+    action.context.set(KeyFilter.filters, filters);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
     if (links instanceof Error) {
       return {
