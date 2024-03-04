@@ -55,32 +55,40 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IActorTest>} Whether the actor should be run
    */
   public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    if (action.context.get(KeysInitQuery.query) === undefined) {
-      throw new Error(`Actor ${this.name} can only work in the context of a query.`);
-    }
-
-    if (!this.restrictedToSolid) {
-      return true;
-    }
-
-    if (action.headers === undefined) {
-      throw new Error('There should be an header for the resource to be in a Solid pods');
-    }
-
-    const links = action.headers.get('Link');
-    if (!links) {
-      throw new Error('There should be a link field inside the header for the resource to be in a Solid pods');
-    }
-
-    const entries = links.split(',')
-      .map(value => value.trimStart());
-
-    for (const entry of entries) {
-      if (entry.includes(ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION)) {
-        return true;
+    return new Promise((resolve, reject) => {
+      if (action.context.get(KeysInitQuery.query) === undefined) {
+        reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
+        return;
       }
-    }
-    throw new Error(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`);
+
+      if (!this.restrictedToSolid) {
+        resolve(true);
+        return;
+      }
+
+      if (action.headers === undefined) {
+        reject(new Error('There should be an header for the resource to be in a Solid pods'));
+        return;
+      }
+
+      const links = action.headers.get('Link');
+      if (!links) {
+        reject(new Error('There should be a link field inside the header for the resource to be in a Solid pods'));
+        return;
+      }
+
+      const entries = links.split(',')
+        .map(value => value.trimStart());
+
+      for (const entry of entries) {
+        if (entry.includes(ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION)) {
+          resolve(true);
+          return;
+        }
+      }
+
+      reject(new Error(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`));
+    });
   }
 
   /**

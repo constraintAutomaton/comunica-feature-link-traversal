@@ -45,12 +45,14 @@ describe('ActorContextPreprocessKeyFilter', () => {
       it('should return a context with the filter if it is not defined', async() => {
         // eslint-disable-next-line unicorn/no-useless-undefined
         (<jest.Mock> action.context.get).mockReturnValue(undefined);
+        (<jest.Mock> action.context.set).mockReturnValue('foo');
+        action.foo = 'bar';
         const resp = await actor.run(action);
 
         expect(action.context.get).toHaveBeenCalledTimes(1);
         expect(action.context.set).toHaveBeenCalledTimes(1);
         expect(action.context.set).toHaveBeenLastCalledWith(KeyFilter.filters, new Map());
-        expect(resp).toStrictEqual(action);
+        expect(resp).toStrictEqual({ context: 'foo', foo: 'bar' });
       });
     });
   });

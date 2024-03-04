@@ -17,7 +17,7 @@ export class ActorContextPreprocessKeyFilter extends ActorContextPreprocess {
 
   public async run(action: IAction): Promise<IActorContextPreprocessOutput> {
     if (action.context.get(KeyFilter.filters) === undefined) {
-      action.context.set(KeyFilter.filters, new Map());
+      return { ...action, context: action.context.set(KeyFilter.filters, new Map()) };
     }
     return action;
   }
