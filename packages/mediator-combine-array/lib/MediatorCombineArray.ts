@@ -26,7 +26,7 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
 
     // Delegate test errors.
     const settledResult = await Promise.allSettled(testResults.map(({ reply }) => reply));
-    
+
     const rejectedActorIndex: Set<number> = new Set();
     // Don't run the actor with rejected test
     for (const [ i, element ] of settledResult.entries()) {
@@ -35,7 +35,6 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
       }
     }
     testResults = testResults.filter((_, index) => !rejectedActorIndex.has(index));
-
 
     // Run action on all actors.
     const results: O[] = await Promise.all(testResults.map(result => result.actor.runObservable(action)));
