@@ -1,6 +1,6 @@
 {
   "name": "@comunica/actor-rdf-resolve-hypermedia-links-queue-wrapper-filter-links",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A wrapper-filter-links rdf-resolve-hypermedia-links-queue actor",
   "lsd:module": true,
   "main": "lib/index.js",

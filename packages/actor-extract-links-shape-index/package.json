@@ -1,6 +1,6 @@
 {
   "name": "@comunica/actor-extract-links-shape-index",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A shape-index extract-links actor",
   "lsd:module": true,
   "main": "lib/index.js",

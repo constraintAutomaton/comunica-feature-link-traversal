@@ -1,6 +1,6 @@
 {
   "name": "@comunica/actor-context-preprocess-key-filter",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A key-filter context-preprocess actor",
   "lsd:module": true,
   "main": "lib/index.js",
