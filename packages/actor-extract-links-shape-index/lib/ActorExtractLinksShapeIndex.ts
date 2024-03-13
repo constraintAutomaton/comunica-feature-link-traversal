@@ -127,10 +127,15 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const query: string = action.context.get(KeysInitQuery.queryString)!;
     const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex, query);
     // TODO add has filters the visited IRIs; the shapes, the containers and so on.
-    const filters = this.generateFilters(filteredResource);
-    this.addVisitedIriToFilters(filters);
-    action.context.set(KeyFilter.filters, filters);
+    // TODO add test that the context really changes
+    let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
+    if (filters === undefined) {
+      filters = new Map();
+      action.context = action.context.set(KeyFilter.filters, filters);
+    }
+    this.generateFilters(filteredResource, filters);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
+    this.addVisitedIriToFilters(filters);
     if (links instanceof Error) {
       return {
         links: [],
@@ -157,8 +162,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IFilteredIndexEntries} filteredResources - The index entries filtered
    * @returns {Map<string, FilterFunction>} A map of the filter functions
    */
-  public generateFilters(filteredResources: IFilteredIndexEntries): Map<string, FilterFunction> {
-    const filterFunctions: Map<string, FilterFunction> = new Map();
+  public generateFilters(filteredResources: IFilteredIndexEntries, filterFunctions: Map<string, FilterFunction>): Map<string, FilterFunction> {
     for (const indexEntry of filteredResources.rejected) {
       if (indexEntry.isAContainer) {
         filterFunctions.set(indexEntry.iri,
@@ -205,7 +209,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [ ...links, ...iris ];
+        links = [...links, ...iris];
       }
     }
     return links;
@@ -222,7 +226,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context })
         .then(response => {
-          this.linksVisited.push(iri);
           response.data.on('data', (quad: RDF.Quad) => {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
               links.push(
@@ -308,10 +311,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IShapeIndex|Error>} The shape index of the Pod
    */
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
+    this.linksVisited.push(shapeIndexIri);
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
         .then(response => {
-          this.linksVisited.push(shapeIndexIri);
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -325,7 +328,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             resolve(error);
           });
 
-          response.data.on('end', async() => {
+          response.data.on('end', async () => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -362,7 +365,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       if (entry !== undefined) {
         entry.target = { iri: quad.object.value, isAContainer };
       } else {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
       }
     }
   }
@@ -380,7 +383,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>, context: IActionContext): Promise<IShapeIndex> {
     const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [ _subject, shape_target ] of shapeIndexInformation) {
+    for (const [_subject, shape_target] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -418,7 +421,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
-    this.linksVisited.push(iri);
+    const normalizedIri = iri.substring(0, iri.indexOf("#")===-1?iri.length:iri.indexOf("#"));
+    this.linksVisited.push(normalizedIri);
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async response => {
         const shape = await shapeFromQuads(response.data, iri);
@@ -426,7 +430,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           resolve(shape);
           return;
         }
-        resolve([ shape, iri ]);
+        resolve([shape, iri]);
       }, error => resolve(error));
     });
   }
