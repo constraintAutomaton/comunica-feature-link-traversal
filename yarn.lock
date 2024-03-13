@@ -1050,13 +1050,6 @@
     rdf-string "^1.6.1"
     sparqlalgebrajs "^4.2.0"
 
-"@comunica/actor-context-preprocess-key-filter@./packages/actor-context-preprocess-key-filter":
-  version "1.0.0"
-  dependencies:
-    "@comunica/bus-context-preprocess" "^2.10.0"
-    "@comunica/context-entries-link-traversal" "^0.2.0"
-    "@comunica/core" "^2.10.0"
-
 "@comunica/actor-context-preprocess-source-to-destination@^2.10.0":
   version "2.10.0"
   resolved "https://registry.yarnpkg.com/@comunica/actor-context-preprocess-source-to-destination/-/actor-context-preprocess-source-to-destination-2.10.0.tgz#ff076eaae1e677b452481327020dcde0ecf13d8f"
@@ -1134,16 +1127,6 @@
     "@comunica/bus-dereference" "^2.8.2"
     "@comunica/bus-dereference-rdf" "^2.8.2"
     "@comunica/bus-rdf-parse" "^2.8.2"
-
-"@comunica/actor-extract-links-shape-index@./packages/actor-extract-links-shape-index":
-  version "1.0.0"
-  dependencies:
-    "@comunica/bus-extract-links" "^0.2.0"
-    "@comunica/context-entries" "^2.10.0"
-    "@comunica/context-entries-link-traversal" "^0.2.0"
-    "@comunica/core" "^2.10.0"
-    query-shape-detection "^0.0.3"
-    rdf-data-factory "^1.1.2"
 
 "@comunica/actor-hash-bindings-sha1@^2.10.0":
   version "2.10.0"
@@ -3326,13 +3309,6 @@
     "@comunica/bus-rdf-resolve-hypermedia-links-queue" "^2.8.2"
     "@comunica/core" "^2.8.2"
 
-"@comunica/actor-rdf-resolve-hypermedia-links-queue-wrapper-filter-links@./packages/actor-rdf-resolve-hypermedia-links-queue-wrapper-filter-links":
-  version "1.0.0"
-  dependencies:
-    "@comunica/bus-rdf-resolve-hypermedia-links-queue" "^2.10.0"
-    "@comunica/context-entries-link-traversal" "^0.2.0"
-    "@comunica/core" "^2.10.0"
-
 "@comunica/actor-rdf-resolve-hypermedia-none@^2.10.0":
   version "2.10.0"
   resolved "https://registry.yarnpkg.com/@comunica/actor-rdf-resolve-hypermedia-none/-/actor-rdf-resolve-hypermedia-none-2.10.0.tgz#a7cc6427f8b3a497b615cca2702ec796103d0550"
@@ -4440,11 +4416,6 @@
   integrity sha512-O1ZaeC70D106F38uGHZWejY1HajMhyY7PpipDrt+Kvdt8JYcfVkTx6dN1DFkyJ8PVmJnRrZkMqj1q1IunSJDag==
   dependencies:
     "@comunica/core" "^2.8.2"
-
-"@comunica/mediator-combine-array@./packages/mediator-combine-array":
-  version "0.2.0"
-  dependencies:
-    "@comunica/core" "^2.10.0"
 
 "@comunica/mediator-combine-pipeline@^2.0.1", "@comunica/mediator-combine-pipeline@^2.5.1":
   version "2.8.2"
@@ -12580,10 +12551,10 @@ qs@^6.10.1, qs@^6.11.2, qs@^6.4.0:
   dependencies:
     side-channel "^1.0.4"
 
-query-shape-detection@^0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.0.3.tgz#bdbbba1b3e51da9852716c2c054b328b6c96c09a"
-  integrity sha512-qrK3546u96qBGUSgrSWzDdLM07JqFIk1/NHI8QjKycIU4P7BluPeB20iEuixKEvW7o6WwRc2qVPEnqnJi2ee9Q==
+query-shape-detection@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.0.4.tgz#424fcced3bcc8e00e78ae85b8a59c5e74a758de1"
+  integrity sha512-/AjpijC+NkK0tv75KnX1Gfi6DHMtA3UcfJFoSfVQFECwCxvA6k/pV/OoUUWJUZiTjMWOGdwBdz0vgfowQzoXsw==
   dependencies:
     "@shexjs/parser" "1.0.0-alpha.26"
     "@shexjs/visitor" "1.0.0-alpha.25"

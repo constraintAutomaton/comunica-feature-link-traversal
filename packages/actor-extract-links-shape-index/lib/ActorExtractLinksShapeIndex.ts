@@ -12,9 +12,9 @@ import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
-  type IPropertyObject, type ISimpleShape, hasOneAlign,
+  type IPropertyObject, type IShape, hasOneAlign,
   createSimplePropertyObjectFromQuery,
-  hackCreateSimpleShapesFromQuadStream,
+  shapeFromQuads,
 } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 
@@ -26,7 +26,7 @@ const DF = new DataFactory<RDF.BaseQuad>();
 export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public static readonly IRI_SHAPETREE = 'http://www.w3.org/ns/shapetrees#ShapeTreeLocator';
   public static readonly IRI_SHAPETREE_OLD = 'http://shapetrees.org/#ShapeTree';
-  public static readonly SHAPE_TREE_IN_SOLID_POD_PATH = 'shapetree';
+  public static readonly SHAPE_TREE_IN_SOLID_POD_PATH = 'shapeIndex';
   public static readonly SHAPE_TREE_LOCATOR = DF.namedNode('http://www.w3.org/ns/shapetrees#ShapeTreeLocator');
   public static readonly SHAPE_TREE_SHAPE = DF.namedNode('http://www.w3.org/ns/shapetrees#shape');
   public static readonly SOLID_INSTANCE = DF.namedNode('http://www.w3.org/ns/solid/terms#instance');
@@ -191,7 +191,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [ ...links, ...iris ];
+        links = [...links, ...iris];
       }
     }
     return links;
@@ -277,9 +277,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     for (const entry of shapeIndex) {
       const isAlign = hasOneAlign(this.propertyObjects, entry.shape);
       if (isAlign === true) {
-        resp.accepted.push(entry);
+        resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
       } else if (isAlign === false) {
-        resp.rejected.push(entry);
+        resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
       }
     }
 
@@ -309,7 +309,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             resolve(error);
           });
 
-          response.data.on('end', async() => {
+          response.data.on('end', async () => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -346,7 +346,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       if (entry !== undefined) {
         entry.target = { iri: quad.object.value, isAContainer };
       } else {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
       }
     }
   }
@@ -356,15 +356,15 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {Map<string, {shape?: string; target?: IShapeIndexTarget;}>} shapeIndexInformation
    * - The shape index information fetch from a quad stream
    * @param {IActionContext} context - The current context of the engine
-   * @returns {Promise<[ISimpleShape, string]|Error>} The shape index of the Pod
+   * @returns {Promise<[IShape, string]|Error>} The shape index of the Pod
    */
   public async getShapeIndex(shapeIndexInformation: Map<string, {
     shape?: string;
     target?: IShapeIndexTarget;
   }>, context: IActionContext): Promise<IShapeIndex> {
-    const promises: Promise<[ISimpleShape, string] | Error>[] = [];
+    const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [ _subject, shape_target ] of shapeIndexInformation) {
+    for (const [_subject, shape_target] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -374,7 +374,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return this.shapeIndexFromPromiseResult(results, iriShapeIndex);
   }
 
-  private shapeIndexFromPromiseResult(results: ([ISimpleShape, string] | Error)[],
+  private shapeIndexFromPromiseResult(results: ([IShape, string] | Error)[],
     iriShapeIndex: Map<string, IShapeIndexTarget>): IShapeIndex {
     const shapeIndex: IShapeIndex = [];
     for (const res of results) {
@@ -399,14 +399,17 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * Fetch the shape from an iri.
    * @param {string} iri - The iri of the shape
    * @param {IActionContext} context - the context of the current engine
-   * @returns {Promise<[ISimpleShape, string]|Error>} A shape object and the iri where it has been fetch
+   * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
    */
-  public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[ISimpleShape, string] | Error> {
+  public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
     return new Promise(async resolve => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(response => {
-        hackCreateSimpleShapesFromQuadStream(response.data).then(shape => {
-          resolve([ shape, iri ]);
-        }, error => resolve(error));
+      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async response => {
+        const shape = await shapeFromQuads(response.data, iri);
+        if (shape instanceof Error) {
+          resolve(shape);
+          return;
+        }
+        resolve([shape, iri]);
       }, error => resolve(error));
     });
   }
@@ -464,5 +467,5 @@ type IShapeIndex = IShapeIndexEntry[];
 type IShapeIndexEntry = Readonly<{
   isAContainer: boolean;
   iri: string;
-  shape: ISimpleShape;
+  shape: IShape;
 }>;

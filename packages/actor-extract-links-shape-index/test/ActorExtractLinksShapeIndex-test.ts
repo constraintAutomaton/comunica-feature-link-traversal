@@ -4,7 +4,7 @@ import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
-import type { ISimpleShape } from 'query-shape-detection';
+import type { IShape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
 
@@ -35,14 +35,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
       });
 
-      it('should not test if the context is empty', async() => {
+      it('should not test if the context is empty', async () => {
         const context = new ActionContext({
         });
         await expect(actor.test(<any>{ context })).rejects
           .toThrowError('Actor actor can only work in the context of a query.');
       });
 
-      it('should not test if there is no header', async() => {
+      it('should not test if there is no header', async () => {
         const context = new ActionContext({
           [KeysInitQuery.query.name]: '',
         });
@@ -50,7 +50,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           .toThrowError('There should be an header for the resource to be in a Solid pods');
       });
 
-      it('should test header information are missing but the actor is not restricted to Solid', async() => {
+      it('should test header information are missing but the actor is not restricted to Solid', async () => {
         const context = new ActionContext({
           [KeysInitQuery.query.name]: '',
         });
@@ -66,7 +66,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.test(<any>{ context, headers })).toBe(true);
       });
 
-      it('should not test if there is an empty header', async() => {
+      it('should not test if there is an empty header', async () => {
         const headers = new Headers();
         const context = new ActionContext({
           [KeysInitQuery.query.name]: '',
@@ -77,12 +77,12 @@ describe('ActorExtractLinksShapeIndex', () => {
           .toThrowError('There should be a link field inside the header for the resource to be in a Solid pods');
       });
 
-      it('should not test if the header doesn\'t have the link to storage description', async() => {
+      it('should not test if the header doesn\'t have the link to storage description', async () => {
         const headers = new Headers(
           [
-            [ 'Link', 'bar' ],
-            [ 'Link', 'foo' ],
-            [ 'foo', 'boo' ],
+            ['Link', 'bar'],
+            ['Link', 'foo'],
+            ['foo', 'boo'],
           ],
         );
         const context = new ActionContext({
@@ -93,12 +93,12 @@ describe('ActorExtractLinksShapeIndex', () => {
         })).rejects.toThrowError(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`);
       });
 
-      it('should test if the header and a valid context is in the action', async() => {
+      it('should test if the header and a valid context is in the action', async () => {
         const headers = new Headers(
           [
-            [ 'Link', 'bar' ],
-            [ 'Link', 'foo' ],
-            [ 'Link', `http://ex.com/bar ;rel=${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}` ],
+            ['Link', 'bar'],
+            ['Link', 'foo'],
+            ['Link', `http://ex.com/bar ;rel=${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}`],
           ],
         );
         const context = new ActionContext({
@@ -109,15 +109,15 @@ describe('ActorExtractLinksShapeIndex', () => {
     });
 
     describe('getShapeFromIRI', () => {
-      const iri = 'foo';
+      const iri = 'http://exemple.com#foo';
       const context: any = {};
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
       });
 
-      it('should return an Error if the shape IRI resource contains no quads', async() => {
+      it('should return an Error if the shape IRI resource contains no quads', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([], { autoStart: false }),
           })),
         };
@@ -133,9 +133,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return an error the mediator fail to fetch the quads', async() => {
+      it('should return an error the mediator fail to fetch the quads', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => {
+          mediate: jest.fn(async () => {
             return new Promise((_, reject) => {
               reject(new Error('foo'));
             });
@@ -153,9 +153,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return an error given quads not representing a ShEx shape', async() => {
+      it('should return an error given quads not representing a ShEx shape', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([
               DF.quad(
                 DF.blankNode(),
@@ -177,7 +177,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return an error given quads representing multiple ShEx shapes', async() => {
+      it('should return an error given quads representing multiple ShEx shapes', async () => {
         const shexj = `{
           "type" : "Schema",
           "shapes" : [
@@ -209,7 +209,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         }`;
         const quads = await rdfFromJsonLDString(shexj);
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -225,7 +225,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return a SimpleShape given quads representing a ShEx shapes', async() => {
+      it('should return a shape given quads representing a ShEx shapes', async () => {
         const shexj = `{
           "type" : "Schema",
           "@context" : "http://www.w3.org/ns/shex.jsonld",
@@ -248,7 +248,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         }`;
         const quads = await rdfFromJsonLDString(shexj);
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -261,12 +261,15 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        const expectedSimpleShape: ISimpleShape = {
-          name: 'http://exemple.com#foo',
-          predicates: [ 'http://exemple.com#id' ],
-        };
-        expect(await actor.getShapeFromIRI(iri, context))
-          .toStrictEqual([ expectedSimpleShape, iri ]);
+
+        const resp = await actor.getShapeFromIRI(iri, context);
+        expect(resp).not.toBeInstanceOf(Error);
+        const [shape, respIri] = <[IShape, string]>resp;
+        expect(respIri).toBe(iri);
+        expect(shape.name).toBe(iri);
+        expect(shape.closed).toBe(false);
+        expect(shape.expectedPredicate()).toStrictEqual(['http://exemple.com#id']);
+        expect(shape.rejectedPredicate()).toStrictEqual([]);
       });
     });
 
@@ -285,7 +288,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.restoreAllMocks();
       });
 
-      it('should return an empty shape index given an empty map of shape index information', async() => {
+      it('should return an empty shape index given an empty map of shape index information', async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
@@ -296,14 +299,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(spy).not.toHaveBeenCalled();
       });
 
-      it('should return an empty shape index given that every shape information are invalid', async() => {
+      it('should return an empty shape index given that every shape information are invalid', async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
         }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true }}],
-          [ 'foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false }}],
+          ['foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false } }],
+          ['foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true } }],
+          ['foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false } }],
         ]);
 
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
@@ -312,14 +315,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getShapeIndex(shapeIndexInformation, context)).toStrictEqual([]);
       });
 
-      it('should return an empty shape index given that every shape information are incomplete', async() => {
+      it('should return an empty shape index given that every shape information are incomplete', async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
         }> = new Map([
-          [ 'foo', { target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
+          ['foo', { target: { iri: 'boo', isAContainer: false } }],
+          ['foo1', { shape: 'bar1' }],
+          ['foo2', {}],
         ]);
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
@@ -327,20 +330,20 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(spy).not.toHaveBeenCalled();
       });
 
-      it('should return a shape index with element from complete information', async() => {
+      it('should return a shape index with element from complete information', async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
         }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
-          [ 'foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true }}],
+          ['foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false } }],
+          ['foo1', { shape: 'bar1' }],
+          ['foo2', {}],
+          ['foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true } }],
         ]);
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
         spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
           return new Promise(resolve => {
-            resolve([{}, iri ]);
+            resolve([{}, iri]);
           });
         });
 
@@ -362,24 +365,24 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should return a shape index with element from complete information
-       given that some information are not valid`, async() => {
+       given that some information are not valid`, async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
         }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
-          [ 'foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true }}],
-          [ 'foo4', { shape: 'bar4', target: { iri: 'boo4', isAContainer: true }}],
+          ['foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false } }],
+          ['foo1', { shape: 'bar1' }],
+          ['foo2', {}],
+          ['foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true } }],
+          ['foo4', { shape: 'bar4', target: { iri: 'boo4', isAContainer: true } }],
         ]);
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
-        spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
+        spy.mockImplementation((iri: string, _context: any): Promise<[any, string] | Error> => {
           return new Promise(resolve => {
             if (iri === 'bar4') {
               resolve(new Error('foo'));
             } else {
-              resolve([{}, iri ]);
+              resolve([{}, iri]);
             }
           });
         });
@@ -401,20 +404,20 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(spy).toHaveBeenCalledTimes(3);
       });
 
-      it('should return a shape index given valid information', async() => {
+      it('should return a shape index given valid information', async () => {
         const shapeIndexInformation: Map<string, {
           shape?: string;
           target?: any;
         }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true }}],
-          [ 'foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false }}],
+          ['foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false } }],
+          ['foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true } }],
+          ['foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false } }],
         ]);
 
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
         spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
           return new Promise(resolve => {
-            resolve([{}, iri ]);
+            resolve([{}, iri]);
           });
         });
 
@@ -449,9 +452,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         bus = new Bus({ name: 'bus' });
       });
 
-      it('should return an error if the deferencing fail', async() => {
+      it('should return an error if the deferencing fail', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => {
+          mediate: jest.fn(async () => {
             return new Promise((_, reject) => {
               reject(new Error('foo'));
             });
@@ -469,9 +472,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.generateShapeIndex(shapeIndexIri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return no shape index given an empty quad stream', async() => {
+      it('should return no shape index given an empty quad stream', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([], { autoStart: false }),
           })),
         };
@@ -487,9 +490,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.generateShapeIndex(shapeIndexIri, context)).toStrictEqual([]);
       });
 
-      it('should return an error if the quad stream return an error', async() => {
+      it('should return an error if the quad stream return an error', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: {
               on(event: string, fn: (error) => void) {
                 if (event === 'error') {
@@ -512,14 +515,14 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should call the shapeIndex method with the correct argument 
-      given a quad stream with one unvalid shape index entry`, async() => {
+      given a quad stream with one unvalid shape index entry`, async () => {
         const quadString = `
         _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
         `;
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -548,7 +551,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should call the shapeIndex method with the correct argument 
-      given a quad stream with multiple shape index entries where some are valid and other are not`, async() => {
+      given a quad stream with multiple shape index entries where some are valid and other are not`, async () => {
         const quadString = `
         _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
         
@@ -566,7 +569,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -579,8 +582,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
         const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
-          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: []}},
+          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: [] } },
+          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: [] } },
         ];
         const spy = jest.spyOn(actor, 'getShapeIndex');
         spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
@@ -604,7 +607,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = await actor.generateShapeIndex(shapeIndexIri, context);
 
         expect(spy).toHaveBeenCalledTimes(1);
-        const callArray = [ ...(<Map<string, any>>spy.mock.calls[0][0]).values() ];
+        const callArray = [...(<Map<string, any>>spy.mock.calls[0][0]).values()];
 
         // We just want to compare unordered arrays
         // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
@@ -613,7 +616,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should call the shapeIndex method with the valid argument given a quad stream 
-      with one valid shape index entry`, async() => {
+      with one valid shape index entry`, async () => {
         const quadString = `
         _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
         _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
@@ -621,7 +624,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -634,7 +637,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
         const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
+          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: [] } },
         ];
         const spy = jest.spyOn(actor, 'getShapeIndex');
         spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
@@ -646,14 +649,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = await actor.generateShapeIndex(shapeIndexIri, context);
 
         expect(spy).toHaveBeenCalledTimes(1);
-        for (const [ _, entry ] of <Map<string, any>>spy.mock.calls[0][0]) {
+        for (const [_, entry] of <Map<string, any>>spy.mock.calls[0][0]) {
           expect(entry).toStrictEqual(expectedShapeInformation);
         }
         expect(resp).toStrictEqual(expectedIndex);
       });
 
       it(`should call the shapeIndex method with the valid argument 
-      given a quad stream with multiple valid shape index entries`, async() => {
+      given a quad stream with multiple valid shape index entries`, async () => {
         const quadString = `
         _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
         _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
@@ -666,7 +669,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator(quads, { autoStart: false }),
           })),
         };
@@ -679,8 +682,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
         const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
-          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: []}},
+          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: [] } },
+          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: [] } },
         ];
         const spy = jest.spyOn(actor, 'getShapeIndex');
         spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
@@ -702,7 +705,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = await actor.generateShapeIndex(shapeIndexIri, context);
 
         expect(spy).toHaveBeenCalledTimes(1);
-        const callArray = [ ...(<Map<string, any>>spy.mock.calls[0][0]).values() ];
+        const callArray = [...(<Map<string, any>>spy.mock.calls[0][0]).values()];
         // We just want to compare unordered arrays
         // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
         expect(callArray.sort()).toStrictEqual(expectedShapeInformation.sort());
@@ -729,7 +732,8 @@ describe('ActorExtractLinksShapeIndex', () => {
             iri: 'foo',
             shape: {
               name: 'foo',
-              predicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+              expectedPredicate: () => ['http://exemple.ca/1', 'http://exemple.ca/2'],
+              rejectedPredicate: () => { return [] }
             },
           },
           {
@@ -737,7 +741,8 @@ describe('ActorExtractLinksShapeIndex', () => {
             iri: 'foo1',
             shape: {
               name: 'foo1',
-              predicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
+              expectedPredicate: () => ['http://exemple.ca/3', 'http://exemple.ca/2'],
+              rejectedPredicate: () => { return [] }
             },
           },
           {
@@ -746,7 +751,8 @@ describe('ActorExtractLinksShapeIndex', () => {
             iri: 'foo2',
             shape: {
               name: 'foo2',
-              predicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
+              expectedPredicate: () => ['http://exemple.ca/4', 'http://exemple.ca/5'],
+              rejectedPredicate: () => { return [] }
             },
           },
         ];
@@ -792,29 +798,18 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo',
-              shape: {
-                name: 'foo',
-                predicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
-              },
             },
             {
 
               isAContainer: true,
               iri: 'foo2',
-              shape: {
-                name: 'foo2',
-                predicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
-              },
+            
             },
           ],
           rejected: [
             {
               isAContainer: true,
               iri: 'foo1',
-              shape: {
-                name: 'foo1',
-                predicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
-              },
             },
           ],
         };
@@ -839,7 +834,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
       });
 
-      it('should return an error given that the metadata stream return an error', async() => {
+      it('should return an error given that the metadata stream return an error', async () => {
         const metadata: any = {
           on(event: string, fn: any) {
             if (event === 'error') {
@@ -850,13 +845,13 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.discoverShapeIndexLocationFromTriples(metadata)).toBeInstanceOf(Error);
       });
 
-      it('should return an error given that the metadata stream return no quads', async() => {
+      it('should return an error given that the metadata stream return no quads', async () => {
         const metadata: any = new ArrayIterator([], { autoStart: false });
         expect(await actor.discoverShapeIndexLocationFromTriples(metadata)).toBeInstanceOf(Error);
       });
 
       it(`should return an error given that the metadata stream 
-      return quads not locating the shapetree`, async() => {
+      return quads not locating the shapetree`, async () => {
         const metadata: any = new ArrayIterator([
           DF.quad(
             DF.blankNode(),
@@ -873,7 +868,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should return the locator given that the metadata stream 
-      return quads not locating the shapetree`, async() => {
+      return quads not locating the shapetree`, async () => {
         const shapetreeLocation = 'foo';
         const metadata: any = new ArrayIterator([
           DF.quad(
@@ -904,9 +899,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         bus = new Bus({ name: 'bus' });
       });
 
-      it('should return an error given the mediator is rejected', async() => {
+      it('should return an error given the mediator is rejected', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => {
+          mediate: jest.fn(async () => {
             return new Promise((_, reject) => {
               reject(new Error('foo'));
             });
@@ -925,7 +920,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getResourceIriFromContainer(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return an error given the mediator return an error', async() => {
+      it('should return an error given the mediator return an error', async () => {
         mediatorDereferenceRdf = <any>{
           mediate: () => new Promise(resolve => resolve(
             {
@@ -952,9 +947,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getResourceIriFromContainer(iri, context)).toBeInstanceOf(Error);
       });
 
-      it('should return an empty array given the mediator return no quads', async() => {
+      it('should return an empty array given the mediator return no quads', async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([], { autoStart: false }),
           })),
         };
@@ -972,9 +967,9 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should return an empty array given the mediator 
-      return quads not informing that the resource is inside a container`, async() => {
+      return quads not informing that the resource is inside a container`, async () => {
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([
               DF.quad(
                 DF.blankNode(),
@@ -985,7 +980,7 @@ describe('ActorExtractLinksShapeIndex', () => {
                 DF.blankNode(),
                 DF.blankNode(),
                 DF.blankNode(),
-              ) ], { autoStart: false }),
+              )], { autoStart: false }),
           })),
         };
 
@@ -1001,10 +996,10 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(await actor.getResourceIriFromContainer(iri, context)).toStrictEqual([]);
       });
 
-      it(`should return the iri of resource inside a container`, async() => {
-        const iris = [ 'foo', 'bar', 'too' ];
+      it(`should return the iri of resource inside a container`, async () => {
+        const iris = ['foo', 'bar', 'too'];
         mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
+          mediate: jest.fn(async () => ({
             data: new ArrayIterator([
               DF.quad(
                 DF.blankNode(),
@@ -1030,7 +1025,7 @@ describe('ActorExtractLinksShapeIndex', () => {
                 DF.blankNode(),
                 ActorExtractLinksShapeIndex.LDP_CONTAINS,
                 DF.namedNode(iris[2]),
-              ) ], { autoStart: false }),
+              )], { autoStart: false }),
           })),
         };
 
@@ -1070,7 +1065,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.resetAllMocks();
       });
 
-      it('should return no iri given the accepted filters are empty', async() => {
+      it('should return no iri given the accepted filters are empty', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1087,7 +1082,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           .toStrictEqual([]);
       });
 
-      it('should return iris given the accepted filters contain only non containers entries', async() => {
+      it('should return iris given the accepted filters contain only non containers entries', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1122,7 +1117,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it(`should return iris given the accepted filters contain containers entry 
-      but the containers are not available`, async() => {
+      but the containers are not available`, async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1151,7 +1146,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
-        spy.mockReturnValue(new Error('foo'));
+        spy.mockResolvedValue(new Error('foo'));
 
         const expectedIri = [{ url: 'foo' }, { url: 'foo2' }];
 
@@ -1160,7 +1155,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(spy).toBeCalledTimes(1);
       });
 
-      it('should return iris given the accepted filters with multiple entries', async() => {
+      it('should return iris given the accepted filters with multiple entries', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1193,16 +1188,16 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
-        spy.mockReturnValue(new Error('foo'));
+        spy.mockResolvedValue(new Error('foo'));
         spy.mockResolvedValueOnce([{ url: 'foo1' }, { url: 'foo10' }]);
-        const expectedIri = [ 'foo', 'foo2', 'foo1', 'foo10' ].map(value => { return { url: value }; });
+        const expectedIri = ['foo', 'foo2', 'foo1', 'foo10'].map(value => { return { url: value }; });
 
         expect(await actor.getIrisFromAcceptedEntries(filteredResources, context))
           .toStrictEqual(expectedIri);
         expect(spy).toBeCalledTimes(2);
       });
       it(`should return iris given the accepted filters with multiple entries
-       and the addIriFromContainerInLinkQueue is set to false`, async() => {
+       and the addIriFromContainerInLinkQueue is set to false`, async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1237,7 +1232,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
         spy.mockRejectedValue(new Error('foo'));
         spy.mockResolvedValueOnce([{ url: 'foo1' }, { url: 'foo10' }]);
-        const expectedIri = [ 'foo', 'foo2' ].map(value => { return { url: value }; });
+        const expectedIri = ['foo', 'foo2'].map(value => { return { url: value }; });
 
         expect(await actor.getIrisFromAcceptedEntries(filteredResources, context))
           .toStrictEqual(expectedIri);
@@ -1306,7 +1301,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = actor.generateFilters(filteredResources);
 
         // I don't know another way to check if the two functions are the same
-        for (const [ key, val ] of resp) {
+        for (const [key, val] of resp) {
           expect(val.toString().includes(expectedFilters.get(key).toString()));
           expect(val(key)).toBe(true);
           expect(val('foo')).toBe(false);
@@ -1339,7 +1334,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = actor.generateFilters(filteredResources);
 
         // I don't know another way to check if the two functions are the same
-        for (const [ key, val ] of resp) {
+        for (const [key, val] of resp) {
           expect(expectedFilters.has(key)).toBeDefined();
           expect(val.toString().includes('return linkqueueURL.length + 1 === shapeIndexURL.length;'));
           expect(val(key)).toBe(true);
@@ -1379,7 +1374,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp = actor.generateFilters(filteredResources);
 
         // I don't know another way to check if the two functions are the same
-        for (const [ key, val ] of resp) {
+        for (const [key, val] of resp) {
           expect(expectedFilters.has(key)).toBeDefined();
           expect(val.toString().includes(expectedFilters.get(key)));
         }
@@ -1392,7 +1387,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.resetAllMocks();
       });
 
-      it('should return an empty link array given we cannot discover the shape index location', async() => {
+      it('should return an empty link array given we cannot discover the shape index location', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1407,10 +1402,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           metadata: jest.fn(),
         };
 
-        expect(await actor.run(action)).toStrictEqual({ links: []});
+        expect(await actor.run(action)).toStrictEqual({ links: [] });
       });
 
-      it('should return an empty link array given that we cannot generate shape index', async() => {
+      it('should return an empty link array given that we cannot generate shape index', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1427,10 +1422,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           metadata: jest.fn(),
         };
 
-        expect(await actor.run(action)).toStrictEqual({ links: []});
+        expect(await actor.run(action)).toStrictEqual({ links: [] });
       });
 
-      it('should return an empty link array given that we cannot add the accepted IRI to the link queue', async() => {
+      it('should return an empty link array given that we cannot add the accepted IRI to the link queue', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1449,7 +1444,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
         jest.spyOn(actor, 'generateFilters').mockReturnValueOnce(new Map());
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
-        spyAddIri.mockReturnValue(new Error('foo'));
+        spyAddIri.mockResolvedValue(new Error('foo'));
 
         const action: any = {
           metadata: jest.fn(),
@@ -1459,11 +1454,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           },
         };
 
-        expect(await actor.run(action)).toStrictEqual({ links: []});
+        expect(await actor.run(action)).toStrictEqual({ links: [] });
         expect(action.context.set).toHaveBeenCalledTimes(1);
       });
 
-      it('should return a link array given all the shape filter process succeeded', async() => {
+      it('should return a link array given all the shape filter process succeeded', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1492,11 +1487,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           },
         };
 
-        expect(await actor.run(action)).toStrictEqual({ links: [{ url: 'foo' }]});
+        expect(await actor.run(action)).toStrictEqual({ links: [{ url: 'foo' }] });
         expect(action.context.set).toHaveBeenCalledTimes(1);
       });
 
-      it('should return an empty link array given the shape index has been handled', async() => {
+      it('should return an empty link array given the shape index has been handled', async () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1528,7 +1523,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         await actor.run(action);
         expect(action.context.set).toHaveBeenCalledTimes(1);
 
-        expect(await actor.run(action)).toStrictEqual({ links: []});
+        expect(await actor.run(action)).toStrictEqual({ links: [] });
       });
     });
   });
@@ -1543,13 +1538,13 @@ function rdfFromJsonLDString(jsonld: string): Promise<RDF.Quad[]> {
       skipContextValidation: true,
     });
     jsonldParser
-      .on('data', async(quad: RDF.Quad) => {
+      .on('data', async (quad: RDF.Quad) => {
         quads.push(quad);
       })
       .on('error', (error: any) => {
         rejects(error);
       })
-      .on('end', async() => {
+      .on('end', async () => {
         resolve(quads);
       });
 
