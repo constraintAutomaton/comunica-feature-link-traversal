@@ -37,6 +37,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   public readonly addIriFromContainerInLinkQueue: boolean;
   public readonly restrictedToSolid: boolean;
+  public linksVisited: string[] = [];
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
   private readonly shapeIndexHandled: Set<string> = new Set();
@@ -99,6 +100,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IActorExtractLinksOutput>} - The new link to add to the link queue
    */
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
+    this.linksVisited = [];
     const shapeIndexLocation = await this.discoverShapeIndexLocationFromTriples(action.metadata);
     if (shapeIndexLocation instanceof Error) {
       return {
@@ -124,7 +126,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     // If there is no query the engine should not work anyways
     const query: string = action.context.get(KeysInitQuery.queryString)!;
     const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex, query);
+    // TODO add has filters the visited IRIs; the shapes, the containers and so on.
     const filters = this.generateFilters(filteredResource);
+    this.addVisitedIriToFilters(filters);
     action.context.set(KeyFilter.filters, filters);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
     if (links instanceof Error) {
@@ -133,6 +137,16 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       };
     }
     return { links };
+  }
+
+  /**
+   * Add filter to prune all the link already visited by the actor
+   * @param {Map<string, FilterFunction>} filters - Current filters
+   */
+  public addVisitedIriToFilters(filters: Map<string, FilterFunction>): void {
+    for (const link of this.linksVisited) {
+      filters.set(link, (iri: string) => iri === link);
+    }
   }
 
   /**
@@ -208,6 +222,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context })
         .then(response => {
+          this.linksVisited.push(iri);
           response.data.on('data', (quad: RDF.Quad) => {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
               links.push(
@@ -296,6 +311,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
         .then(response => {
+          this.linksVisited.push(shapeIndexIri);
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -402,6 +418,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
+    this.linksVisited.push(iri);
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async response => {
         const shape = await shapeFromQuads(response.data, iri);
