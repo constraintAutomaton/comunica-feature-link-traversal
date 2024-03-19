@@ -12551,10 +12551,10 @@ qs@^6.10.1, qs@^6.11.2, qs@^6.4.0:
   dependencies:
     side-channel "^1.0.4"
 
-query-shape-detection@^0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.0.6.tgz#aa87386aacc4b5ab82636db26dc8c35d60dc4073"
-  integrity sha512-ed/Gh6RCqMhqYkoqzAb4RT7yxwUX9+sECBgbPAbMsQ7iDoNeM+HIDFpBbHxZX5dl8YsV7VOSfkrPSx8um98ddQ==
+query-shape-detection@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.0.7.tgz#37829cf5f4d8fb884dfa49cfbf314c21280edb8d"
+  integrity sha512-wqnsthrrYWA/Ai1tKp2YkdVlqYwqYQTSpAhVGlBjBJiJLoHTm5nLTSuFzdYD+37baoD61pV5/V4BWGOONTvu5w==
   dependencies:
     "@shexjs/parser" "1.0.0-alpha.26"
     "@shexjs/visitor" "1.0.0-alpha.25"
