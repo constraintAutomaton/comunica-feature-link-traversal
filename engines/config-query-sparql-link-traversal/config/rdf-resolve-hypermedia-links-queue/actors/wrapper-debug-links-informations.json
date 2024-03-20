@@ -1,0 +1,19 @@
+{
+    "@context": [
+      "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/runner/^2.0.0/components/context.jsonld",
+  
+      "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-rdf-resolve-hypermedia-link-queue-wrapper-debug-links-information/^0.0.0/components/context.jsonld"
+    ],
+    "@id": "urn:comunica:default:Runner",
+    "@type": "Runner",
+    "actors": [
+      {
+        "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/actors#wrapper-debug-links-information",
+        "@type": "ActorRdfResolveHypermediaLinksQueueWrapperDebugLinksInformation",
+        "beforeActors": { "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/actors#wrapper-filter-links" },
+        "filePath": "./link_queue_infor.json",
+        "mediatorRdfResolveHypermediaLinksQueue": { "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/mediators#main" }
+      }
+    ]
+  }
+  

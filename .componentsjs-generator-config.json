@@ -11,7 +11,8 @@
     "ContentPolicy",
     "BindingsStreamAdaptiveDestroy",
     "MetadataValidationState",
-    "LinkQueueFilterLinks"
+    "LinkQueueFilterLinks",
+    "LinkQueueSaveOnDiskInfo"
   ],
   "modulePrefix": {}
 }
