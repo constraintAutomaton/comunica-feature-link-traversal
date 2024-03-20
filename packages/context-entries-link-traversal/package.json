@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "description": "A collection of reusable Comunica context key definitions for link traversal.",
   "main": "lib/index.js",
+  "lsd:module": true,
   "typings": "lib/index",
   "repository": {
     "type": "git",
