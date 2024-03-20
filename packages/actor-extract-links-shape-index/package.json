@@ -45,6 +45,7 @@
     "build:components": "componentsjs-generator"
   },
   "devDependencies": {
+    "jsonld-context-parser": "^2.4.0",
     "jsonld-streaming-parser": "^3.3.0",
     "n3": "^1.17.2"
   }

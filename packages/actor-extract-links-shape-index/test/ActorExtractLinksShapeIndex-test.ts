@@ -2,6 +2,7 @@ import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
+import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
 import type { IShape } from 'query-shape-detection';
@@ -237,7 +238,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       it('should return a shape given quads representing a ShEx shapes', async() => {
         const shexj = `{
           "type" : "Schema",
-          "@context" : "http://www.w3.org/ns/shex.jsonld",
+          "@context" : "https://www.w3.org/ns/shex.jsonld",
           "shapes" : [
             {
               "type" : "Shape",
@@ -285,7 +286,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       it('should return a shape given quads representing a ShEx shapes with an iri without "#"', async() => {
         const shexj = `{
           "type" : "Schema",
-          "@context" : "http://www.w3.org/ns/shex.jsonld",
+          "@context" : "https://www.w3.org/ns/shex.jsonld",
           "shapes" : [
             {
               "type" : "Shape",
@@ -1649,12 +1650,20 @@ describe('ActorExtractLinksShapeIndex', () => {
   });
 });
 
-function rdfFromJsonLDString(jsonld: string): Promise<RDF.Quad[]> {
-  return new Promise((resolve, rejects) => {
+async function rdfFromJsonLDString(jsonld: string): Promise<RDF.Quad[]> {
+  return new Promise(async(resolve, rejects) => {
     const quads: RDF.Quad[] = [];
+    const contextParser = new ContextParser({
+      documentLoader: new FetchDocumentLoader(),
+      skipValidation: true,
+      expandContentTypeToBase: true,
+      remoteContextsDepthLimit: 1,
+    });
+    const context = await contextParser.parse([ SHEX_CONTEXT ]);
+
     const jsonldParser = new JsonLdParser({
       streamingProfile: false,
-      context: SHEX_CONTEXT,
+      context,
       skipContextValidation: true,
     });
     jsonldParser
