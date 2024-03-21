@@ -11,7 +11,7 @@
         "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/actors#wrapper-debug-links-information",
         "@type": "ActorRdfResolveHypermediaLinksQueueWrapperDebugLinksInformation",
         "beforeActors": { "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/actors#wrapper-filter-links" },
-        "filePath": "./link_queue_infor.json",
+        "filePath": "./link_queue_info.json",
         "mediatorRdfResolveHypermediaLinksQueue": { "@id": "urn:comunica:default:rdf-resolve-hypermedia-links-queue/mediators#main" }
       }
     ]
