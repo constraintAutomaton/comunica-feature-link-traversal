@@ -7,7 +7,7 @@ import { ActionContext, Bus } from '@comunica/core';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
-import { ActorExtractLinksSolidTypeIndex } from '../lib/ActorExtractLinksSolidTypeIndex';
+import { ActorExtractLinksSolidTypeIndex, REACHABILITY_TYPE_INDEX } from '../lib/ActorExtractLinksSolidTypeIndex';
 
 const quad = require('rdf-quad');
 const stream = require('streamify-array');
@@ -642,6 +642,50 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         });
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
+    });
+  });
+
+  describe('generateLink', () => {
+    let actor: ActorExtractLinksSolidTypeIndex | undefined;
+    const url = 'foo';
+    beforeEach(() => {
+      actor = undefined;
+    });
+
+    it('should generate the link with the metadata given the label frag', () => {
+      actor = new ActorExtractLinksSolidTypeIndex({
+        name: 'actor',
+        bus,
+        typeIndexPredicates: [
+          'ex:typeIndex1',
+          'ex:typeIndex2',
+        ],
+        onlyMatchingTypes: true,
+        inference: true,
+        mediatorDereferenceRdf,
+        actorInitQuery,
+        labelLinkWithReachability: true,
+      });
+      const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_TYPE_INDEX }};
+      expect(actor.generateLink(url)).toStrictEqual(expectLink);
+    });
+
+    it('should not generate the metadata given the flag is false', () => {
+      actor = new ActorExtractLinksSolidTypeIndex({
+        name: 'actor',
+        bus,
+        typeIndexPredicates: [
+          'ex:typeIndex1',
+          'ex:typeIndex2',
+        ],
+        onlyMatchingTypes: true,
+        inference: true,
+        mediatorDereferenceRdf,
+        actorInitQuery,
+        labelLinkWithReachability: false,
+      });
+      const expectLink = { url };
+      expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
   });
 });

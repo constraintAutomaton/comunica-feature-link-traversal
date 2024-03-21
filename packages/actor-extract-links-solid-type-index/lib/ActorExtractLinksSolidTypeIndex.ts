@@ -24,11 +24,14 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
   private readonly onlyMatchingTypes: boolean;
   private readonly inference: boolean;
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
+  private readonly labelLinkWithReachability: boolean;
   public readonly queryEngine: QueryEngineBase;
 
   public constructor(args: IActorExtractLinksSolidTypeIndexArgs) {
     super(args);
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
+    this.labelLinkWithReachability =
+    args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   public async test(action: IActionExtractLinks): Promise<IActorTest> {
@@ -142,7 +145,7 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
       if (!typeLinks[type]) {
         typeLinks[type] = [];
       }
-      typeLinks[type].push({ url: bindings.get('instance')!.value });
+      typeLinks[type].push(this.generateLink(bindings.get('instance')!.value));
     }
     return typeLinks;
   }
@@ -283,6 +286,13 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
 
     return links;
   }
+
+  private generateLink(url: string): ILink {
+    if (this.labelLinkWithReachability) {
+      return { url, metadata: { REACHABILITY_LABEL: REACHABILITY_TYPE_INDEX }};
+    }
+    return { url };
+  }
 }
 
 export interface IActorExtractLinksSolidTypeIndexArgs
@@ -314,4 +324,10 @@ export interface IActorExtractLinksSolidTypeIndexArgs
    * The Dereference RDF mediator
    */
   mediatorDereferenceRdf: MediatorDereferenceRdf;
+  /**
+   * If true the links will be label with the reachability criteria.
+   */
+  labelLinkWithReachability?: boolean;
 }
+
+export const REACHABILITY_TYPE_INDEX = 'cTypeIndex';

@@ -7,7 +7,7 @@ import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
 import type { IShape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
-import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
+import { ActorExtractLinksShapeIndex, REACHABILITY_SHAPE_INDEX } from '../lib/ActorExtractLinksShapeIndex';
 
 import * as SHEX_CONTEXT from './shex_context.json';
 
@@ -1645,6 +1645,38 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(action.context.set).toHaveBeenCalledTimes(1);
 
         expect(await actor.run(action)).toStrictEqual({ links: []});
+      });
+    });
+
+    describe('generateLink', () => {
+      const url = 'foo';
+
+      it('should generate the link with the metadata given the label frag', () => {
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri: true,
+          restrictedToSolid: true,
+          labelLinkWithReachability: true,
+        });
+        const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_SHAPE_INDEX }};
+        expect(actor.generateLink(url)).toStrictEqual(expectLink);
+      });
+
+      it('should not generate the metadata given the flag is false', () => {
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri: true,
+          restrictedToSolid: true,
+          labelLinkWithReachability: false,
+        });
+        const expectLink = { url };
+        expect(actor.generateLink(url)).toStrictEqual(expectLink);
       });
     });
   });

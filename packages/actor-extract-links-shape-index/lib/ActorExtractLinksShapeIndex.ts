@@ -37,6 +37,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   public readonly addIriFromContainerInLinkQueue: boolean;
   public readonly restrictedToSolid: boolean;
+  private readonly labelLinkWithReachability: boolean;
   private filters: Map<string, FilterFunction> = new Map();
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
@@ -45,6 +46,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
+    this.labelLinkWithReachability =
+    args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   /**
@@ -206,7 +209,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const promises: Promise<ILink[] | Error>[] = [];
     for (const indexEntry of filteredResources.accepted) {
       if (!indexEntry.isAContainer) {
-        links.push({ url: indexEntry.iri });
+        links.push(this.generateLink(indexEntry.iri));
       } else if (this.addIriFromContainerInLinkQueue) {
         promises.push(this.getResourceIriFromContainer(indexEntry.iri, context));
       }
@@ -233,9 +236,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         .then(response => {
           response.data.on('data', (quad: RDF.Quad) => {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
-              links.push(
-                { url: quad.object.value },
-              );
+              links.push(this.generateLink(quad.object.value));
             }
           });
 
@@ -439,6 +440,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       }, error => resolve(error));
     });
   }
+
+  public generateLink(url: string): ILink {
+    if (this.labelLinkWithReachability) {
+      return { url, metadata: { REACHABILITY_LABEL: REACHABILITY_SHAPE_INDEX }};
+    }
+    return { url };
+  }
 }
 
 export interface IActorExtractLinksShapeIndexArgs
@@ -461,6 +469,10 @@ export interface IActorExtractLinksShapeIndexArgs
    * Don't execute the actor if the document is not in a Solid pod
    */
   restrictedToSolid: boolean;
+  /**
+   * If true the links will be label with the reachability criteria.
+   */
+  labelLinkWithReachability?: boolean;
 }
 
 /**
@@ -495,3 +507,5 @@ type IShapeIndexEntry = Readonly<{
   iri: string;
   shape: IShape;
 }>;
+
+export const REACHABILITY_SHAPE_INDEX = 'cShapeIndex';

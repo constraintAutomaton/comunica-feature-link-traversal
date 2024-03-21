@@ -6,6 +6,7 @@ import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import {
   ActorExtractLinksQuadPatternQuery,
+  REACHABILITY_MATCH,
 } from '../lib/ActorExtractLinksQuadPatternQuery';
 
 const quad = require('rdf-quad');
@@ -27,9 +28,9 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
     });
 
     it('should be a ActorExtractLinksQuadPatternQuery constructor', () => {
-      expect(new (<any> ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
+      expect(new (<any>ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
         .toBeInstanceOf(ActorExtractLinksQuadPatternQuery);
-      expect(new (<any> ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
+      expect(new (<any>ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
         .toBeInstanceOf(ActorExtractLinks);
     });
 
@@ -267,6 +268,36 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:o6' },
           ],
         });
+    });
+  });
+
+  describe('generateLink', () => {
+    let actor: ActorExtractLinksQuadPatternQuery | undefined;
+    const url = 'foo';
+    beforeEach(() => {
+      actor = undefined;
+    });
+
+    it('should generate the link with the metadata given the label frag', () => {
+      actor = new ActorExtractLinksQuadPatternQuery({
+        name: 'actor',
+        bus,
+        onlyVariables: true,
+        labelLinkWithReachability: true,
+      });
+      const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_MATCH }};
+      expect(actor.generateLink(url)).toStrictEqual(expectLink);
+    });
+
+    it('should not generate the metadata given the flag is false', () => {
+      actor = new ActorExtractLinksQuadPatternQuery({
+        name: 'actor',
+        bus,
+        onlyVariables: true,
+        labelLinkWithReachability: false,
+      });
+      const expectLink = { url };
+      expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
   });
 });
