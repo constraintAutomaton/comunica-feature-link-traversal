@@ -1,4 +1,5 @@
 import { writeFileSync } from 'fs';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { LinkQueueSaveOnDiskInfo } from '../lib/LinkQueueSaveOnDiskInfo';
 
 jest.mock('fs');
@@ -82,7 +83,7 @@ describe('LinkQueueFilterLinks', () => {
 
       const expectedHistory = {
         iris_popped: [],
-        iris_pushed: [ iri.url ],
+        iris_pushed: [{ url: iri.url, reachability_criteria: null }],
         filters: [],
         started_empty: true,
       };
@@ -128,13 +129,19 @@ describe('LinkQueueFilterLinks', () => {
         isEmpty: () => false,
       };
       const wrapper = new LinkQueueSaveOnDiskInfo(linkQueue, filePath);
-      const iris_pushed: string[] = [];
+      const iris_pushed: any[] = [];
       for (; i < n; i++) {
-        const iri = {
+        let iri: any = {
           url: String(i),
         };
-        if (i % 2 === 0) {
-          iris_pushed.push(String(i));
+        if (i % 4 === 0 && i !== 0) {
+          iris_pushed.push({ url: String(i), reachability_criteria: 'abc' });
+          iri = {
+            url: String(i),
+            metadata: { [REACHABILITY_LABEL]: 'abc' },
+          };
+        } else if (i % 2 === 0) {
+          iris_pushed.push({ url: String(i), reachability_criteria: null });
         }
         const expectedHistory = {
           iris_popped: [],
@@ -168,7 +175,7 @@ describe('LinkQueueFilterLinks', () => {
       };
 
       const expectedHistory = {
-        iris_popped: [ iri.url ],
+        iris_popped: [{ url: iri.url, reachability_criteria: null }],
         iris_pushed: [],
         filters: [],
         started_empty: true,
@@ -209,17 +216,28 @@ describe('LinkQueueFilterLinks', () => {
       let i = 0;
       const n = 10;
       const linkQueue: any = {
-        pop: () => i % 2 === 0 ? { url: String(i) } : undefined,
+        pop() {
+          let link: any;
+
+          if (i % 4 === 0 && i !== 0) {
+            link = {
+              url: String(i),
+              metadata: { [REACHABILITY_LABEL]: 'abc' },
+            };
+          } else if (i % 2 === 0) {
+            link = { url: String(i) };
+          }
+          return link;
+        },
         isEmpty: () => false,
       };
       const wrapper = new LinkQueueSaveOnDiskInfo(linkQueue, filePath);
-      const iris_popped: string[] = [];
+      const iris_popped: any[] = [];
       for (; i < n; i++) {
-        const iri = {
-          url: String(i),
-        };
-        if (i % 2 === 0) {
-          iris_popped.push(String(i));
+        if (i % 4 === 0 && i !== 0) {
+          iris_popped.push({ url: String(i), reachability_criteria: 'abc' });
+        } else if (i % 2 === 0) {
+          iris_popped.push({ url: String(i), reachability_criteria: null });
         }
         const expectedHistory = {
           iris_popped,
@@ -229,8 +247,13 @@ describe('LinkQueueFilterLinks', () => {
         };
 
         const resp = wrapper.pop();
-
-        expect(resp).toStrictEqual(i % 2 === 0 ? { url: String(i) } : undefined);
+        if (i % 4 === 0 && i !== 0) {
+          expect(resp).toStrictEqual({ url: String(i), metadata: { [REACHABILITY_LABEL]: 'abc' }});
+        } else if (i % 2 === 0) {
+          expect(resp).toStrictEqual({ url: String(i) });
+        } else {
+          expect(resp).toBeUndefined();
+        }
         expect(<jest.Mock>writeFileSync).toHaveBeenCalledTimes(Math.floor(i / 2) + 1);
         expect(wrapper.getHistory()).toStrictEqual(expectedHistory);
         expect(<jest.Mock>writeFileSync).toHaveBeenCalledWith(filePath, JSON.stringify(expectedHistory));

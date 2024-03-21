@@ -3,16 +3,22 @@ import { writeFileSync } from 'fs';
 import type { ILinkQueue, ILink } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { LinkQueueWrapper } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import type { FilterFunction } from '@comunica/types-link-traversal';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 
-interface IOptionalLinkQueueParameters{
+interface IOptionalLinkQueueParameters {
   filterMap?: Map<string, FilterFunction>;
 }
 
 interface IHistory {
-  iris_popped: string[];
-  iris_pushed: string[];
+  iris_popped: IURLStatistic[];
+  iris_pushed: IURLStatistic[];
   filters: string[];
   started_empty: boolean;
+}
+
+interface IURLStatistic {
+  url: string;
+  reachability_criteria: string | undefined;
 }
 /**
  * A link queue that push to a file an history of the pushing and popping and optional parameters
@@ -52,7 +58,12 @@ export class LinkQueueSaveOnDiskInfo extends LinkQueueWrapper {
   public push(link: ILink, parent: ILink): boolean {
     const resp: boolean = super.push(link, parent);
     if (resp) {
-      this.history.iris_pushed.push(link.url);
+      const metadata = link.metadata;
+      let reachability_criteria = null;
+      if (metadata !== undefined) {
+        reachability_criteria = metadata[REACHABILITY_LABEL];
+      }
+      this.history.iris_pushed.push({ url: link.url, reachability_criteria });
       this.materialize();
     }
     return resp;
@@ -61,7 +72,12 @@ export class LinkQueueSaveOnDiskInfo extends LinkQueueWrapper {
   public pop(): ILink | undefined {
     const resp = super.pop();
     if (resp !== undefined) {
-      this.history.iris_popped.push(resp.url);
+      const metadata = resp.metadata;
+      let reachability_criteria = null;
+      if (metadata !== undefined) {
+        reachability_criteria = metadata[REACHABILITY_LABEL];
+      }
+      this.history.iris_popped.push({ url: resp.url, reachability_criteria });
       this.materialize();
     }
     return resp;
