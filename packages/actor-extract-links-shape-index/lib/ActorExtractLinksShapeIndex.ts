@@ -152,14 +152,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }
 
   /**
-   * Add filter to prune all the link already visited by the actor
-   * @param {string} iri - iri to add
-   */
-  public addVisitedIriToFilters(iri: string): void {
-    this.filters.set(iri, (currentIri: string) => iri === currentIri);
-  }
-
-  /**
    * Get the current filter map of the engine
    * @returns {Map<string, FilterFunction>} A hard copy of the filter map
    */
@@ -322,7 +314,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IShapeIndex|Error>} The shape index of the Pod
    */
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
-    this.addVisitedIriToFilters(shapeIndexIri);
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
         .then(response => {
@@ -432,8 +423,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
-    const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-    this.addVisitedIriToFilters(normalizedIri);
     return new Promise(async resolve => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async response => {
         const shape = await shapeFromQuads(response.data, iri);

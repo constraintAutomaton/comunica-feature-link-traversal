@@ -135,9 +135,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
-
-        const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
       });
 
       it('should return an error the mediator fail to fetch the quads', async() => {
@@ -158,8 +155,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
-        const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
       });
 
       it('should return an error given quads not representing a ShEx shape', async() => {
@@ -184,8 +179,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
-        const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
       });
 
       it('should return an error given quads representing multiple ShEx shapes', async() => {
@@ -234,8 +227,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.getShapeFromIRI(iri, context)).toBeInstanceOf(Error);
-        const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
       });
 
       it('should return a shape given quads representing a ShEx shapes', async() => {
@@ -282,55 +273,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(shape.closed).toBe(false);
         expect(shape.expectedPredicate()).toStrictEqual([ 'http://exemple.com#id' ]);
         expect(shape.rejectedPredicate()).toStrictEqual([]);
-        const normalizedIri = iri.slice(0, Math.max(0, !iri.includes('#') ? iri.length : iri.indexOf('#')));
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
-      });
-
-      it('should return a shape given quads representing a ShEx shapes with an iri without "#"', async() => {
-        const shexj = `{
-          "type" : "Schema",
-          "@context" : "https://www.w3.org/ns/shex.jsonld",
-          "shapes" : [
-            {
-              "type" : "Shape",
-              "id" : "http://exemple.com",
-              "expression" : {
-                "predicate" : "http://exemple.com#id",
-                "valueExpr" : {
-                  "type" : "NodeConstraint",
-                  "datatype" : "http://exemple.com#long"
-                },
-                "min" : 1,
-                "max" : 1,
-                "type" : "TripleConstraint"
-              }
-            }
-          ]
-        }`;
-        const quads = await rdfFromJsonLDString(shexj);
-        mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
-            data: new ArrayIterator(quads, { autoStart: false }),
-          })),
-        };
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-        const normalizedIri = 'http://exemple.com';
-
-        const resp = await actor.getShapeFromIRI(normalizedIri, context);
-        expect(resp).not.toBeInstanceOf(Error);
-        const [ shape, respIri ] = <[IShape, string]>resp;
-        expect(respIri).toBe(normalizedIri);
-        expect(shape.closed).toBe(false);
-        expect(shape.expectedPredicate()).toStrictEqual([ 'http://exemple.com#id' ]);
-        expect(shape.rejectedPredicate()).toStrictEqual([]);
-        expect(actor.getFilters().has(normalizedIri)).toBe(true);
       });
     });
 
@@ -531,7 +473,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.generateShapeIndex(shapeIndexIri, context)).toBeInstanceOf(Error);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it('should return no shape index given an empty quad stream', async() => {
@@ -550,7 +491,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.generateShapeIndex(shapeIndexIri, context)).toStrictEqual([]);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it('should return an error if the quad stream return an error', async() => {
@@ -575,7 +515,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         expect(await actor.generateShapeIndex(shapeIndexIri, context)).toBeInstanceOf(Error);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it(`should call the shapeIndex method with the correct argument 
@@ -612,7 +551,6 @@ describe('ActorExtractLinksShapeIndex', () => {
           expect(entry).toStrictEqual(expectedShapeInformation);
         }
         expect(resp).toStrictEqual(expectedIndex);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it(`should call the shapeIndex method with the correct argument 
@@ -678,7 +616,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
         expect(callArray.sort()).toStrictEqual(expectedShapeInformation.sort());
         expect(resp).toStrictEqual(expectedIndex);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it(`should call the shapeIndex method with the valid argument given a quad stream 
@@ -719,7 +656,6 @@ describe('ActorExtractLinksShapeIndex', () => {
           expect(entry).toStrictEqual(expectedShapeInformation);
         }
         expect(resp).toStrictEqual(expectedIndex);
-        expect(actor.getFilters().has(shapeIndexIri)).toBe(true);
       });
 
       it(`should call the shapeIndex method with the valid argument 
@@ -1499,46 +1435,6 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
     });
 
-    describe('addVisitedIriToFilters', () => {
-      beforeEach(() => {
-        bus = new Bus({ name: 'bus' });
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-      });
-
-      it('should return provide a filter with an equal function for the provided iri', () => {
-        actor.addVisitedIriToFilters('foo');
-        const filter = actor.getFilters().get('foo');
-        expect(filter).toBeDefined();
-        expect((<any>filter)('foo')).toBe(true);
-        expect((<any>filter)('bar')).toBe(false);
-      });
-
-      it('should be able to add multiple filters', () => {
-        const iris = [
-          'foo',
-          'foo1',
-          'foo2',
-        ];
-        let i = 1;
-        for (const iri of iris) {
-          actor.addVisitedIriToFilters(iri);
-          const filter = actor.getFilters().get(iri);
-          expect(filter).toBeDefined();
-          expect((<any>filter)(iri)).toBe(true);
-          expect((<any>filter)('bar')).toBe(false);
-          expect(actor.getFilters().size).toBe(i);
-          i++;
-        }
-      });
-    });
-
     describe('run', () => {
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
@@ -1604,7 +1500,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         spyDiscover.mockResolvedValueOnce('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
         spyGenerateShapeIndex.mockImplementation(() => {
-          actor.addVisitedIriToFilters('b');
           return new Promise(resolve => {
             resolve(<any>'');
           });
@@ -1630,7 +1525,6 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         expect(await actor.run(action)).toStrictEqual({ links: []});
         expect(actor.getFilters().has('a')).toBe(true);
-        expect(actor.getFilters().has('b')).toBe(true);
         expect(action.context.get).toHaveBeenCalledTimes(2);
       });
 
