@@ -1,8 +1,13 @@
+// eslint-disable-next-line import/no-nodejs-modules
+import { createHash } from 'crypto';
+// eslint-disable-next-line import/no-nodejs-modules
+import * as Path from 'path';
 import type {
   IActionRdfResolveHypermediaLinksQueue,
   IActorRdfResolveHypermediaLinksQueueOutput,
 } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { ActorRdfResolveHypermediaLinksQueue } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
+import { KeysInitQuery } from '@comunica/context-entries';
 import type { Actor, IActorArgs, IActorTest, Mediator } from '@comunica/core';
 import { ActionContextKey } from '@comunica/core';
 import { LinkQueueSaveOnDiskInfo } from './LinkQueueSaveOnDiskInfo';
@@ -31,8 +36,15 @@ export class ActorRdfResolveHypermediaLinksQueueWrapperDebugLinksInformation
 
   public async run(action: IActionRdfResolveHypermediaLinksQueue): Promise<IActorRdfResolveHypermediaLinksQueueOutput> {
     const context = action.context.set(KEY_CONTEXT_WRAPPED, true);
+    const query: string = action.context.get(KeysInitQuery.queryString)!;
+
+    const hashed_query = createHash('md5').update(query).digest('hex');
+    const pathObject = Path.parse(this.filePath);
+    pathObject.name += `_${hashed_query}`;
+    const path = Path.join(pathObject.dir, `${pathObject.name}${pathObject.ext}`);
+
     const { linkQueue } = await this.mediatorRdfResolveHypermediaLinksQueue.mediate({ ...action, context });
-    return { linkQueue: new LinkQueueSaveOnDiskInfo(linkQueue, this.filePath) };
+    return { linkQueue: new LinkQueueSaveOnDiskInfo(linkQueue, path) };
   }
 }
 

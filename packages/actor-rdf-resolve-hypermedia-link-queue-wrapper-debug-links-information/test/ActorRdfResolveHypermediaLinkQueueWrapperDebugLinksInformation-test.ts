@@ -5,7 +5,7 @@ import { LinkQueueSaveOnDiskInfo } from '../lib/LinkQueueSaveOnDiskInfo';
 
 describe('ActorRdfResolveHypermediaLinksQueueRdfResolveHypermediaLinkQueueWrapperDebugLinksInformation', () => {
   let bus: any;
-  const filePath = 'bar';
+  const filePath = 'bar.json';
 
   describe('ActorRdfResolveHypermediaLinkQueueWrapperDebugLinksInformation instance', () => {
     let actor: any;
@@ -46,7 +46,7 @@ describe('ActorRdfResolveHypermediaLinksQueueRdfResolveHypermediaLinkQueueWrappe
         action = {
           context: {
             set: jest.fn(),
-            get: jest.fn(),
+            get: jest.fn().mockReturnValue('foo'),
           },
         };
       });
@@ -77,8 +77,10 @@ describe('ActorRdfResolveHypermediaLinksQueueRdfResolveHypermediaLinkQueueWrappe
           filePath,
           mediatorRdfResolveHypermediaLinksQueue: mediator,
         });
+        // The hash of foo the mock query
+        const expectedFilePath = 'bar_acbd18db4cc2f85cedef654fccc4a4d8.json';
 
-        const expectedLinkQueueWrapper = new LinkQueueSaveOnDiskInfo(linkQueue, filePath);
+        const expectedLinkQueueWrapper = new LinkQueueSaveOnDiskInfo(linkQueue, expectedFilePath);
 
         expect(await actor.run(action)).toStrictEqual({ linkQueue: expectedLinkQueueWrapper });
         expect(action.context.set).toHaveBeenCalledTimes(1);
