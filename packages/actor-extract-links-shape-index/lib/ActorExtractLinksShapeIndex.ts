@@ -43,7 +43,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
   private query: string | undefined = undefined;
-  private readonly shapeIndexHandled: Set<string> = new Set();
+  private shapeIndexHandled: Set<string> = new Set();
   private readonly cacheShapeIndexIri = true;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
@@ -109,11 +109,11 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const query: string = action.context.get(KeysInitQuery.queryString)!;
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
-    // We add filters to the context, if ti doesn't exist or the query has changed
+    // We add filters to the context, if it doesn't exist or the query has changed
     if (filters === undefined || this.query !== query && this.query !== undefined) {
       filters = new Map();
       action.context = action.context.set(KeyFilter.filters, filters);
-      this.shapeIndexHandled.clear();
+      this.shapeIndexHandled = new Set();
     }
     this.filters = filters;
 
