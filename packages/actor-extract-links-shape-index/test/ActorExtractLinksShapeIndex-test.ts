@@ -933,7 +933,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         const resp2 = actor.filterResourcesFromShapeIndex(shapeIndex, query2);
         expect(resp2.accepted.length).toBe(0);
         expect(resp2.rejected.length).toBe(0);
-        
       });
     });
 
