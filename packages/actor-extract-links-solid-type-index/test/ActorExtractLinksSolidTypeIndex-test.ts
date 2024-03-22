@@ -4,6 +4,7 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
 import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
@@ -666,7 +667,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         actorInitQuery,
         labelLinkWithReachability: true,
       });
-      const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_TYPE_INDEX }};
+      const expectLink = { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_TYPE_INDEX }};
       expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
 

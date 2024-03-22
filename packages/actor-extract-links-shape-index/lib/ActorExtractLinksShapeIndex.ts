@@ -10,6 +10,7 @@ import { KeyFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
   type IPropertyObject, type IShape, hasOneAlign,
@@ -443,7 +444,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public generateLink(url: string): ILink {
     if (this.labelLinkWithReachability) {
-      return { url, metadata: { REACHABILITY_LABEL: REACHABILITY_SHAPE_INDEX }};
+      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_SHAPE_INDEX }};
     }
     return { url };
   }

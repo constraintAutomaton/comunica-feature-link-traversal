@@ -4,6 +4,7 @@ import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import { KeysInitQuery } from '@comunica/context-entries';
 import type { IActorArgs, IActorTest } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import type * as RDF from 'rdf-js';
 import type { QuadTermName } from 'rdf-terms';
@@ -115,7 +116,7 @@ export class ActorExtractLinksQuadPatternQuery extends ActorExtractLinks {
 
   public generateLink(url: string): ILink {
     if (this.labelLinkWithReachability) {
-      return { url, metadata: { REACHABILITY_LABEL: REACHABILITY_MATCH }};
+      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_MATCH }};
     }
     return { url };
   }

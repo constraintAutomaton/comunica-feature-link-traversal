@@ -2,6 +2,7 @@ import type { Readable } from 'stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import {
@@ -285,7 +286,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         onlyVariables: true,
         labelLinkWithReachability: true,
       });
-      const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_MATCH }};
+      const expectLink = { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_MATCH }};
       expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
 

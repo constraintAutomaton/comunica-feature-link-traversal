@@ -1,5 +1,6 @@
 import type { Readable } from 'stream';
 import { ActionContext, Bus } from '@comunica/core';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { ActorExtractLinksPredicates } from '../lib/ActorExtractLinksPredicates';
 
 const quad = require('rdf-quad');
@@ -100,7 +101,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cCommon' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cCommon' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 
@@ -114,7 +115,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cLDP' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cLDP' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 
@@ -128,7 +129,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cSolidStorage' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cSolidStorage' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 
@@ -141,7 +142,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cPredicateNothing' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cPredicateNothing' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 
@@ -155,7 +156,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cPredicate_foo' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cPredicate_foo' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 
@@ -171,7 +172,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ],
         labelLinkWithReachability: true,
       });
-      const expectedLink = { url, metadata: { REACHABILITY_LABEL: 'cPredicate_foo_bar_boo' }};
+      const expectedLink = { url, metadata: { [REACHABILITY_LABEL]: 'cPredicate_foo_bar_boo' }};
       expect(actor.generateLink(url)).toStrictEqual(expectedLink);
     });
 

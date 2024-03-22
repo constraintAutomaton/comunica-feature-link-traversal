@@ -2,6 +2,7 @@ import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bu
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import type { IActorArgs, IActorTest } from '@comunica/core';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 
 /**
  * A comunica Traverse Predicates RDF Metadata Extract Actor.
@@ -43,7 +44,7 @@ export class ActorExtractLinksPredicates extends ActorExtractLinks {
 
   public generateLink(url: string): ILink {
     if (this.labelLinkWithReachability) {
-      return { url, metadata: { REACHABILITY_LABEL: this.reachabilityLabel }};
+      return { url, metadata: { [REACHABILITY_LABEL]: this.reachabilityLabel }};
     }
     return { url };
   }

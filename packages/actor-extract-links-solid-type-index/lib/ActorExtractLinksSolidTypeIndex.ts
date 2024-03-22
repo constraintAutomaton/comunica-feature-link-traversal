@@ -8,6 +8,7 @@ import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
 import { KeysRdfJoin, KeysRdfResolveHypermediaLinks } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorTest } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { storeStream } from 'rdf-store-stream';
 import { termToString } from 'rdf-string';
@@ -289,7 +290,7 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
 
   private generateLink(url: string): ILink {
     if (this.labelLinkWithReachability) {
-      return { url, metadata: { REACHABILITY_LABEL: REACHABILITY_TYPE_INDEX }};
+      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_TYPE_INDEX }};
     }
     return { url };
   }

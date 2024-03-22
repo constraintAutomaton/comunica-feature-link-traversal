@@ -1,5 +1,6 @@
 import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
@@ -1661,7 +1662,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
           labelLinkWithReachability: true,
         });
-        const expectLink = { url, metadata: { REACHABILITY_LABEL: REACHABILITY_SHAPE_INDEX }};
+        const expectLink = { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_SHAPE_INDEX }};
         expect(actor.generateLink(url)).toStrictEqual(expectLink);
       });
 
