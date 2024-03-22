@@ -1705,7 +1705,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(action.context.set).toHaveBeenLastCalledWith(KeyFilter.filters, new Map());
       });
 
-      it('should return an empty link array given the shape index has been handled', async() => {
+      it('should return an empty link array given the shape index has already been handled', async() => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1717,28 +1717,31 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
-        const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValue([]);
-        jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValue({
-          accepted: [],
-          rejected: [],
-        });
         jest.spyOn(actor, 'addRejectedEntryFilters');
+        jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue([]);
+
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
-        spyAddIri.mockResolvedValue([]);
+        spyAddIri.mockResolvedValue([{ url: 'foo' }]);
+        const filter = new Map();
         const action: any = {
           metadata: jest.fn(),
           context: {
             get: jest.fn().mockImplementation((val: ActionContextKey<any>) => {
               if (val.name === KeysInitQuery.queryString.name) {
-                return 'bar';
+                return `
+                SELECT *
+                WHERE {
+                  ?s ?p ?o .
+                }
+                `;
+              } if (val.name === KeyFilter.filters.name) {
+                return filter;
               }
             }),
             set: jest.fn().mockReturnThis(),
           },
         };
-        await actor.run(action);
-        expect(action.context.set).toHaveBeenCalledTimes(1);
+        expect(await actor.run(action)).toStrictEqual({ links: [{ url: 'foo' }]});
         expect(await actor.run(action)).toStrictEqual({ links: []});
       });
     });
