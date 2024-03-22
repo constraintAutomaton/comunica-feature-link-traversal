@@ -1,4 +1,6 @@
 import { KeysInitQuery } from '@comunica/context-entries';
+import { KeyFilter } from '@comunica/context-entries-link-traversal';
+import type { ActionContextKey } from '@comunica/core';
 import { ActionContext, Bus } from '@comunica/core';
 import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
@@ -1619,7 +1621,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn().mockReturnValue(new Map([[ 'a', () => true ]])),
+            get: jest.fn()
+              .mockReturnValueOnce('a')
+              .mockReturnValue(new Map([[ 'a', () => true ]])),
             set: jest.fn(),
           },
         };
@@ -1663,6 +1667,44 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(action.context.set).toHaveBeenCalledTimes(1);
       });
 
+      it('should handle the change of query', async() => {
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri,
+          restrictedToSolid: true,
+        });
+        const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
+        spyDiscover.mockResolvedValue('foo');
+        const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
+        spyGenerateShapeIndex.mockResolvedValue([]);
+        jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValue({
+          accepted: [],
+          rejected: [],
+        });
+        jest.spyOn(actor, 'addRejectedEntryFilters');
+        const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
+        spyAddIri.mockResolvedValue([{ url: 'foo' }]);
+
+        const action: any = {
+          metadata: jest.fn(),
+          context: {
+            get: jest.fn().mockReturnValueOnce('foo'),
+            set: jest.fn().mockReturnThis(),
+          },
+        };
+
+        expect(await actor.run(action)).toStrictEqual({ links: [{ url: 'foo' }]});
+        expect(action.context.set).toHaveBeenCalledTimes(1);
+
+        action.context.get.mockReturnValueOnce('bar');
+        expect(await actor.run(action)).toStrictEqual({ links: [{ url: 'foo' }]});
+        expect(action.context.set).toHaveBeenCalledTimes(2);
+        expect(action.context.set).toHaveBeenLastCalledWith(KeyFilter.filters, new Map());
+      });
+
       it('should return an empty link array given the shape index has been handled', async() => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
@@ -1676,25 +1718,27 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValueOnce([]);
-        jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValueOnce({
+        spyGenerateShapeIndex.mockResolvedValue([]);
+        jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValue({
           accepted: [],
           rejected: [],
         });
         jest.spyOn(actor, 'addRejectedEntryFilters');
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
-        spyAddIri.mockResolvedValueOnce([]);
-
+        spyAddIri.mockResolvedValue([]);
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn(),
+            get: jest.fn().mockImplementation((val: ActionContextKey<any>) => {
+              if (val.name === KeysInitQuery.queryString.name) {
+                return 'bar';
+              }
+            }),
             set: jest.fn().mockReturnThis(),
           },
         };
         await actor.run(action);
         expect(action.context.set).toHaveBeenCalledTimes(1);
-
         expect(await actor.run(action)).toStrictEqual({ links: []});
       });
     });

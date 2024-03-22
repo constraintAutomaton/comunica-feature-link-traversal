@@ -18,6 +18,7 @@ export class ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks extends Actor
   IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput>;
 
   private readonly calculateSize?: boolean;
+  private readonly currentQuery: string | undefined = undefined;
 
   public constructor(args: IActorRdfResolveHypermediaLinksQueueWrapperFilterLinksArgs) {
     super(args);

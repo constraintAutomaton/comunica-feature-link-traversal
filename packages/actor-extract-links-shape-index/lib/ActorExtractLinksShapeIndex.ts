@@ -105,11 +105,15 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IActorExtractLinksOutput>} - The new link to add to the link queue
    */
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
+    // If there is no query the engine should not work anyways
+    const query: string = action.context.get(KeysInitQuery.queryString)!;
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
-    if (filters === undefined) {
+    // We add filters to the context, if ti doesn't exist or the query has changed
+    if (filters === undefined || this.query !== query && this.query !== undefined) {
       filters = new Map();
       action.context = action.context.set(KeyFilter.filters, filters);
+      this.shapeIndexHandled.clear();
     }
     this.filters = filters;
 
@@ -135,8 +139,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       };
     }
 
-    // If there is no query the engine should not work anyways
-    const query: string = action.context.get(KeysInitQuery.queryString)!;
     const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex, query);
 
     this.addRejectedEntryFilters(filteredResource);
