@@ -9,8 +9,8 @@
   "actors": [
     {
       "@id": "urn:comunica:default:extract-links/actors#quad-pattern-query",
-      "@type": "ActorExtractLinksQuadPatternQuery"
+      "@type": "ActorExtractLinksQuadPatternQuery",
+      "labelLinkWithReachability":true
     }
-  ],
-  "labelLinkWithReachability":true
+  ]
 }
