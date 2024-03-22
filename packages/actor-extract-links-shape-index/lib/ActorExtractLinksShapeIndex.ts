@@ -43,7 +43,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
   private query: string | undefined = undefined;
-  private shapeIndexHandled: Set<string> = new Set();
+  private readonly shapeIndexHandled: Set<string> = new Set();
   private readonly cacheShapeIndexIri = true;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
@@ -113,7 +113,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     if (filters === undefined || this.query !== query && this.query !== undefined) {
       filters = new Map();
       action.context = action.context.set(KeyFilter.filters, filters);
-      this.shapeIndexHandled = new Set();
+      this.shapeIndexHandled.clear();
     }
     this.filters = filters;
 
