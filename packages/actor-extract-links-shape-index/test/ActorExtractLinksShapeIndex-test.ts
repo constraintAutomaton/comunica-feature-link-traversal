@@ -883,6 +883,57 @@ describe('ActorExtractLinksShapeIndex', () => {
         // We just want to compare unordered arrays
         // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
         expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
+        // We just want to compare unordered arrays
+        // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+        expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
+      });
+
+      it('should adapt to a query change', () => {
+        const query = `SELECT * WHERE { 
+          ?x ?o ?z .
+          ?x <http://exemple.ca/1> ?z .
+          ?z <http://exemple.ca/2023> "abc" .
+          ?w <http://exemple.ca/4> <http://objet.fr> .
+          <http://sujet.cm> <http://predicat.cm> "def" .
+          FILTER (year(?x) > 2000)
+      }`;
+
+        const expectedFilteredResource = {
+          accepted: [
+            {
+              isAContainer: true,
+              iri: 'foo',
+            },
+            {
+
+              isAContainer: true,
+              iri: 'foo2',
+
+            },
+          ],
+          rejected: [
+            {
+              isAContainer: true,
+              iri: 'foo1',
+            },
+          ],
+        };
+
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex, query);
+        // We just want to compare unordered arrays
+        // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+        expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
+        // We just want to compare unordered arrays
+        // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+        expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
+
+        const query2 = `SELECT * WHERE { 
+          ?x ?o ?z .
+      }`;
+        const resp2 = actor.filterResourcesFromShapeIndex(shapeIndex, query2);
+        expect(resp2.accepted.length).toBe(0);
+        expect(resp2.rejected.length).toBe(0);
+        
       });
     });
 

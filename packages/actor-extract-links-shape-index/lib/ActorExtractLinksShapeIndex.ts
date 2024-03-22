@@ -42,13 +42,14 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   private filters: Map<string, FilterFunction> = new Map();
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
+  private query: string | undefined = undefined;
   private readonly shapeIndexHandled: Set<string> = new Set();
   private readonly cacheShapeIndexIri = true;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
     this.labelLinkWithReachability =
-    args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
+      args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   /**
@@ -218,7 +219,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [ ...links, ...iris ];
+        links = [...links, ...iris];
       }
     }
     return links;
@@ -297,6 +298,12 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     };
     if (this.propertyObjects === undefined) {
       this.propertyObjects = createSimplePropertyObjectFromQuery(query);
+      this.query = query;
+    }
+    
+    if (query !== this.query) {
+      this.propertyObjects = createSimplePropertyObjectFromQuery(query);
+      this.query = query;
     }
 
     for (const entry of shapeIndex) {
@@ -335,7 +342,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             resolve(error);
           });
 
-          response.data.on('end', async() => {
+          response.data.on('end', async () => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -372,7 +379,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       if (entry !== undefined) {
         entry.target = { iri: quad.object.value, isAContainer };
       } else {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
       }
     }
   }
@@ -390,7 +397,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>, context: IActionContext): Promise<IShapeIndex> {
     const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [ _subject, shape_target ] of shapeIndexInformation) {
+    for (const [_subject, shape_target] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -437,14 +444,14 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           resolve(shape);
           return;
         }
-        resolve([ shape, iri ]);
+        resolve([shape, iri]);
       }, error => resolve(error));
     });
   }
 
   public generateLink(url: string): ILink {
     if (this.labelLinkWithReachability) {
-      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_SHAPE_INDEX }};
+      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_SHAPE_INDEX } };
     }
     return { url };
   }
