@@ -1,12 +1,10 @@
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
-import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import { KeysInitQuery } from '@comunica/context-entries';
 import type { IActorArgs, IActorTest } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
-import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
+import type * as RDF from '@rdfjs/types';
 import { DataFactory } from 'rdf-data-factory';
-import type * as RDF from 'rdf-js';
 import type { QuadTermName } from 'rdf-terms';
 import { filterQuadTermNames, getNamedNodes, getTerms, matchPatternComplete } from 'rdf-terms';
 import type { Algebra } from 'sparqlalgebrajs';
@@ -20,12 +18,9 @@ const VAR = DF.variable('__comunica:pp_var');
  */
 export class ActorExtractLinksQuadPatternQuery extends ActorExtractLinks {
   private readonly onlyVariables: boolean;
-  private readonly labelLinkWithReachability: boolean;
 
   public constructor(args: IActorExtractLinksQuadPatternQueryArgs) {
     super(args);
-    this.labelLinkWithReachability =
-    args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   public static getCurrentQuery(context: IActionContext): Algebra.Operation | undefined {
@@ -98,27 +93,20 @@ export class ActorExtractLinksQuadPatternQuery extends ActorExtractLinks {
             }
 
             // For the discovered quad term names, check extract the named nodes in the quad
-            for (const quadTermName of <QuadTermName[]>Object.keys(quadTermNames)) {
+            for (const quadTermName of <QuadTermName[]> Object.keys(quadTermNames)) {
               if (quad[quadTermName].termType === 'NamedNode') {
-                links.push(this.generateLink(quad[quadTermName].value));
+                links.push({ url: quad[quadTermName].value });
               }
             }
           } else {
             // --- If we want to follow links, irrespective of matching with a variable component ---
             for (const link of getNamedNodes(getTerms(quad))) {
-              links.push(this.generateLink(link.value));
+              links.push({ url: link.value });
             }
           }
         }
       }),
     };
-  }
-
-  public generateLink(url: string): ILink {
-    if (this.labelLinkWithReachability) {
-      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_MATCH }};
-    }
-    return { url };
   }
 }
 
@@ -129,10 +117,4 @@ export interface IActorExtractLinksQuadPatternQueryArgs
    * @default {true}
    */
   onlyVariables: boolean;
-  /**
-   * If true the links will be label with the reachability criteria.
-   */
-  labelLinkWithReachability?: boolean;
 }
-
-export const REACHABILITY_MATCH = 'cMatch';

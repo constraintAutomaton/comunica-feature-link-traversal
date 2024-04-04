@@ -7,7 +7,8 @@ describe('LinkQueueFilterLinks', () => {
         isEmpty: () => false,
       };
       const filterMap: any = new Map();
-      expect(() => new LinkQueueFilterLinks(linkqueue, filterMap)).toThrow();
+      expect(() => new LinkQueueFilterLinks(linkqueue, filterMap))
+        .toThrow('the wrapped link queue should be empty upon construction of the wrapper');
     });
 
     it('construct the linkqueue and the filter map should be a reference', () => {
@@ -115,7 +116,9 @@ describe('LinkQueueFilterLinks', () => {
     it('should be able to accept and reject multiple links', () => {
       const links: any[] = [{ url: 'foo' }, { url: 'foo1' }, { url: 'foo2' }];
       const parent: any = { url: 'parent' };
-      filterMap.set('foo', iri => { return iri === 'foo1'; });
+      filterMap.set('foo', (iri) => {
+        return iri === 'foo1';
+      });
 
       for (const link of links) {
         expect(linkQueue.push(link, parent)).toBe(link.url !== 'foo1');
@@ -154,18 +157,17 @@ describe('LinkQueueFilterLinks', () => {
     });
 
     it('should returns undefined given that the wrapped link queue returns undefined', () => {
-      // eslint-disable-next-line unicorn/no-useless-undefined
       wrappedLinkQueue.pop.mockReturnValueOnce(undefined);
 
       expect(linkQueue.pop()).toBeUndefined();
-      expect(wrappedLinkQueue.pop).toHaveBeenCalled();
+      expect(wrappedLinkQueue.pop).toHaveBeenCalledWith();
     });
 
     it(`should return undefined given the linked pop by the wrapped link queue is not undefined 
     and doesn't respect the filters and the next link is undefined`, () => {
       filterMap.set('foo', () => true);
       (<jest.Mock>wrappedLinkQueue.pop).mockReturnValueOnce(aLink);
-      // eslint-disable-next-line unicorn/no-useless-undefined
+
       (<jest.Mock>wrappedLinkQueue.pop).mockReturnValueOnce(undefined);
 
       const resp = linkQueue.pop();
@@ -197,7 +199,7 @@ describe('LinkQueueFilterLinks', () => {
       filterMap.set('foo', () => true);
       (<jest.Mock>wrappedLinkQueue.pop).mockReturnValueOnce(aLink);
       (<jest.Mock>wrappedLinkQueue.pop).mockReturnValueOnce(aLink);
-      // eslint-disable-next-line unicorn/no-useless-undefined
+
       (<jest.Mock>wrappedLinkQueue.pop).mockReturnValueOnce(undefined);
 
       (<jest.Mock>wrappedLinkQueue.isEmpty).mockReturnValueOnce(false);
@@ -247,8 +249,7 @@ describe('LinkQueueFilterLinks', () => {
       expect(linkQueue.pop()).toStrictEqual(links[3]);
       expect(linkQueue.getSize()).toBe(0);
 
-      // eslint-disable-next-line unicorn/no-useless-undefined
-      expect(linkQueue.pop()).toStrictEqual(undefined);
+      expect(linkQueue.pop()).toBeUndefined();
       expect(linkQueue.getSize()).toBe(0);
     });
   });
@@ -431,7 +432,6 @@ describe('LinkQueueFilterLinks', () => {
     });
 
     it('should return undefined given the peek link from the wrapped link queue is undefined', () => {
-      // eslint-disable-next-line unicorn/no-useless-undefined
       (<jest.Mock> wrappedLinkQueue.peek).mockReturnValueOnce(undefined);
       expect(linkQueue.peek()).toBeUndefined();
     });

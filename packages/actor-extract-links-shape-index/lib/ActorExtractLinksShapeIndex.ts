@@ -10,10 +10,11 @@ import { KeyFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
-import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
-  type IPropertyObject, type IShape, hasOneAlign,
+  type IPropertyObject,
+  type IShape,
+  hasOneAlign,
   createSimplePropertyObjectFromQuery,
   shapeFromQuads,
 } from 'query-shape-detection';
@@ -38,18 +39,14 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   public readonly addIriFromContainerInLinkQueue: boolean;
   public readonly restrictedToSolid: boolean;
-  private readonly labelLinkWithReachability: boolean;
   private filters: Map<string, FilterFunction> = new Map();
 
   private propertyObjects: IPropertyObject[] | undefined = undefined;
-  private query: string | undefined = undefined;
   private readonly shapeIndexHandled: Set<string> = new Set();
   private readonly cacheShapeIndexIri = true;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
-    this.labelLinkWithReachability =
-      args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   /**
@@ -110,7 +107,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
-    if (filters === undefined || this.query !== query && this.query !== undefined) {
+    if (filters === undefined) {
       filters = new Map();
       action.context = action.context.set(KeyFilter.filters, filters);
       this.shapeIndexHandled.clear();
@@ -165,28 +162,25 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * same as the one pass, if it is a container than it validate if the iri is in the
    * same container.
    * @param {IFilteredIndexEntries} filteredResources - The index entries filtered
-   * @returns {Map<string, FilterFunction>} A map of the filter functions
    */
   public addRejectedEntryFilters(filteredResources: IFilteredIndexEntries): void {
     for (const indexEntry of filteredResources.rejected) {
       if (indexEntry.isAContainer) {
-        this.filters.set(indexEntry.iri,
-          (iri: string) => {
-            if (iri === indexEntry.iri) {
-              return true;
-            }
-            if (!iri.includes(indexEntry.iri)) {
-              return false;
-            }
+        this.filters.set(indexEntry.iri, (iri: string) => {
+          if (iri === indexEntry.iri) {
+            return true;
+          }
+          if (!iri.includes(indexEntry.iri)) {
+            return false;
+          }
 
-            const shapeIndexURL = new URL(indexEntry.iri).pathname.split('/');
-            const linkqueueURL = new URL(iri).pathname.split('/');
-            // We check if we are not deeper than the targeted containers
-            return linkqueueURL.length === shapeIndexURL.length;
-          });
+          const shapeIndexURL = new URL(indexEntry.iri).pathname.split('/');
+          const linkqueueURL = new URL(iri).pathname.split('/');
+          // We check if we are not deeper than the targeted containers
+          return linkqueueURL.length === shapeIndexURL.length;
+        });
       } else {
-        this.filters.set(indexEntry.iri,
-          (iri: string) => iri === indexEntry.iri);
+        this.filters.set(indexEntry.iri, (iri: string) => iri === indexEntry.iri);
       }
     }
   }
@@ -199,13 +193,15 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IActionContext} context - The current context of the engine
    * @returns {Promise<ILink[]>} An array of the iris from the index that are accepted
    */
-  public async getIrisFromAcceptedEntries(filteredResources: IFilteredIndexEntries,
-    context: IActionContext): Promise<ILink[]> {
+  public async getIrisFromAcceptedEntries(
+    filteredResources: IFilteredIndexEntries,
+    context: IActionContext,
+  ): Promise<ILink[]> {
     let links: ILink[] = [];
     const promises: Promise<ILink[] | Error>[] = [];
     for (const indexEntry of filteredResources.accepted) {
       if (!indexEntry.isAContainer) {
-        links.push(this.generateLink(indexEntry.iri));
+        links.push({ url: indexEntry.iri });
       } else if (this.addIriFromContainerInLinkQueue) {
         promises.push(this.getResourceIriFromContainer(indexEntry.iri, context));
       }
@@ -227,12 +223,12 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public getResourceIriFromContainer(iri: string, context: IActionContext): Promise<ILink[] | Error> {
     const links: ILink[] = [];
-    return new Promise(async resolve => {
+    return new Promise((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context })
-        .then(response => {
+        .then((response) => {
           response.data.on('data', (quad: RDF.Quad) => {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
-              links.push(this.generateLink(quad.object.value));
+              links.push({ url: quad.object.value });
             }
           });
 
@@ -240,10 +236,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             resolve(links);
           });
 
-          response.data.on('error', error => {
+          response.data.on('error', (error) => {
             resolve(error);
           });
-        }, error => {
+        }, (error) => {
           resolve(error);
         });
     });
@@ -256,7 +252,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<string|Error>} The IRI of the shape index
    */
   public discoverShapeIndexLocationFromTriples(metadata: RDF.Stream): Promise<string | Error> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       let shapeIndexLocation: string | undefined;
       metadata.on('data', (quad: RDF.Quad) => {
         if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_TREE_LOCATOR)) {
@@ -264,7 +260,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
       });
 
-      metadata.on('error', error => {
+      metadata.on('error', (error) => {
         resolve(error);
       });
 
@@ -290,9 +286,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       accepted: [],
       rejected: [],
     };
-    if ((this.propertyObjects === undefined) || (query !== this.query)) {
+    if ((this.propertyObjects === undefined) || (this.filters.size === 0)) {
       this.propertyObjects = createSimplePropertyObjectFromQuery(query);
-      this.query = query;
     }
 
     for (const entry of shapeIndex) {
@@ -314,9 +309,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<IShapeIndex|Error>} The shape index of the Pod
    */
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
-    return new Promise(async resolve => {
+    return new Promise<IShapeIndex | Error>((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
-        .then(response => {
+        .then(async(response) => {
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -326,15 +321,16 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             this.fillShapeIndexInformation(quad, shapeIndexInformation);
           });
 
-          response.data.on('error', async error => {
+          response.data.on('error', (error) => {
             resolve(error);
           });
-
+          // I don't see a simple alternative
+          // eslint-disable-next-line ts/no-misused-promises
           response.data.on('end', async() => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
-        }, error => {
+        }, (error) => {
           resolve(error);
         });
     });
@@ -352,10 +348,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>): void {
     if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_TREE_SHAPE)) {
       const entry = shapeIndexInformation.get(quad.subject.value);
-      if (entry !== undefined) {
-        entry.shape = quad.object.value;
-      } else {
+      if (entry === undefined) {
         shapeIndexInformation.set(quad.subject.value, { shape: quad.object.value });
+      } else {
+        entry.shape = quad.object.value;
       }
     }
 
@@ -364,10 +360,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       isAContainer
     ) {
       const entry = shapeIndexInformation.get(quad.subject.value);
-      if (entry !== undefined) {
-        entry.target = { iri: quad.object.value, isAContainer };
-      } else {
+      if (entry === undefined) {
         shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
+      } else {
+        entry.target = { iri: quad.object.value, isAContainer };
       }
     }
   }
@@ -395,8 +391,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return this.shapeIndexFromPromiseResult(results, iriShapeIndex);
   }
 
-  private shapeIndexFromPromiseResult(results: ([IShape, string] | Error)[],
-    iriShapeIndex: Map<string, IShapeIndexTarget>): IShapeIndex {
+  private shapeIndexFromPromiseResult(
+    results: ([IShape, string] | Error)[],
+    iriShapeIndex: Map<string, IShapeIndexTarget>,
+  ): IShapeIndex {
     const shapeIndex: IShapeIndex = [];
     for (const res of results) {
       // We simply don't add to the index shapes that are not available or invalid
@@ -423,8 +421,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
-    return new Promise(async resolve => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async response => {
+    return new Promise((resolve) => {
+      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async(response) => {
         const shape = await shapeFromQuads(response.data, iri);
         if (shape instanceof Error) {
           resolve(shape);
@@ -433,13 +431,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         resolve([ shape, iri ]);
       }, error => resolve(error));
     });
-  }
-
-  public generateLink(url: string): ILink {
-    if (this.labelLinkWithReachability) {
-      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_SHAPE_INDEX }};
-    }
-    return { url };
   }
 }
 

@@ -1,14 +1,13 @@
-import type { Readable } from 'stream';
+import type { Readable } from 'node:stream';
 import type { ActorInitQuery } from '@comunica/actor-init-query';
 import { BindingsFactory } from '@comunica/bindings-factory';
 import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
 import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
-import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
-import { ActorExtractLinksSolidTypeIndex, REACHABILITY_TYPE_INDEX } from '../lib/ActorExtractLinksSolidTypeIndex';
+import { ActorExtractLinksSolidTypeIndex } from '../lib/ActorExtractLinksSolidTypeIndex';
 
 const quad = require('rdf-quad');
 const stream = require('streamify-array');
@@ -77,40 +76,40 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
     });
 
     describe('test', () => {
-      it('should reject for an empty context', () => {
-        return expect(actor.test(<any> { context: new ActionContext() })).rejects
-          .toThrowError('Actor actor can only work in the context of a query.');
+      it('should reject for an empty context', async() => {
+        await expect(actor.test(<any> { context: new ActionContext() })).rejects
+          .toThrow('Actor actor can only work in the context of a query.');
       });
 
-      it('should reject for a context without query operation', () => {
-        return expect(actor.test(<any> {
+      it('should reject for a context without query operation', async() => {
+        await expect(actor.test(<any> {
           context: new ActionContext({
             [KeysInitQuery.query.name]: {},
           }),
-        })).rejects.toThrowError('Actor actor can only work in the context of a query operation.');
+        })).rejects.toThrow('Actor actor can only work in the context of a query operation.');
       });
 
-      it('should reject for a context without query', () => {
-        return expect(actor.test(<any> {
+      it('should reject for a context without query', async() => {
+        await expect(actor.test(<any> {
           context: new ActionContext({
             [KeysQueryOperation.operation.name]: {},
           }),
-        })).rejects.toThrowError('Actor actor can only work in the context of a query.');
+        })).rejects.toThrow('Actor actor can only work in the context of a query.');
       });
 
-      it('should be true for a valid context', () => {
-        return expect(actor.test(<any> { context })).resolves.toBeTruthy();
+      it('should be true for a valid context', async() => {
+        await expect(actor.test(<any> { context })).resolves.toBeTruthy();
       });
     });
 
-    it('should run on an empty stream', () => {
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+    it('should run on an empty stream', async() => {
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [],
         });
     });
 
-    it('should run on a stream without type index predicates', () => {
+    it('should run on a stream without type index predicates', async() => {
       input = stream([
         quad('ex:s1', 'ex:px', 'ex:o1', 'ex:gx'),
         quad('ex:s2', 'ex:p', '"o"', 'ex:g'),
@@ -118,7 +117,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [],
         });
@@ -182,7 +181,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
       };
     });
 
-    it('should run on a stream without type index predicates', () => {
+    it('should run on a stream without type index predicates', async() => {
       input = stream([
         quad('ex:s1', 'ex:px', 'ex:o1', 'ex:gx'),
         quad('ex:s2', 'ex:p', '"o"', 'ex:g'),
@@ -190,7 +189,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [],
         });
@@ -204,13 +203,14 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
         return {
           toArray: async() => [ ],
         };
@@ -236,13 +236,14 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
         return {
           toArray: async() => [ ],
         };
@@ -280,13 +281,14 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
         return {
           toArray: async() => [ ],
         };
@@ -364,13 +366,14 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
         return {
           toArray: async() => [
             BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
@@ -410,19 +413,20 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
-        if (query.includes('ex:predicate8'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
-          ],
-        };
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
+        if (query.includes('ex:predicate8')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
+            ],
+          };
         }
 
         return {
@@ -463,20 +467,21 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
-        if (query.includes('ex:predicate10'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
-            BF.fromRecord({ domain: DF.namedNode('ex:class1') }),
-          ],
-        };
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
+        if (query.includes('ex:predicate10')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
+              BF.fromRecord({ domain: DF.namedNode('ex:class1') }),
+            ],
+          };
         }
       };
       context = new ActionContext({
@@ -512,18 +517,20 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
       ]);
       (<any> actor).queryEngine.queryBindings = (query: string) => {
-        if (query.includes('solid:TypeRegistration'))
-        { return {
-          toArray: async() => [
-            BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
-            BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
-          ],
-        }; }
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
         return {
           toArray: async() => [
 
           ],
-        }; };
+        };
+      };
       context = new ActionContext({
         [KeysInitQuery.query.name]: AF.createPath(
           DF.variable('s1'),
@@ -604,7 +611,8 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file1',
-            }, {
+            },
+            {
               url: 'ex:file2',
             },
           ],
@@ -636,57 +644,14 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file1',
-            }, {
+            },
+            {
               url: 'ex:file2',
             },
           ],
         });
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
-    });
-  });
-
-  describe('generateLink', () => {
-    let actor: ActorExtractLinksSolidTypeIndex | undefined;
-    const url = 'foo';
-    beforeEach(() => {
-      actor = undefined;
-    });
-
-    it('should generate the link with the metadata given the label frag', () => {
-      actor = new ActorExtractLinksSolidTypeIndex({
-        name: 'actor',
-        bus,
-        typeIndexPredicates: [
-          'ex:typeIndex1',
-          'ex:typeIndex2',
-        ],
-        onlyMatchingTypes: true,
-        inference: true,
-        mediatorDereferenceRdf,
-        actorInitQuery,
-        labelLinkWithReachability: true,
-      });
-      const expectLink = { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_TYPE_INDEX }};
-      expect(actor.generateLink(url)).toStrictEqual(expectLink);
-    });
-
-    it('should not generate the metadata given the flag is false', () => {
-      actor = new ActorExtractLinksSolidTypeIndex({
-        name: 'actor',
-        bus,
-        typeIndexPredicates: [
-          'ex:typeIndex1',
-          'ex:typeIndex2',
-        ],
-        onlyMatchingTypes: true,
-        inference: true,
-        mediatorDereferenceRdf,
-        actorInitQuery,
-        labelLinkWithReachability: false,
-      });
-      const expectLink = { url };
-      expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
   });
 });

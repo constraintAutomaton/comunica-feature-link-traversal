@@ -4,11 +4,10 @@ import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
-import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
-import { KeysRdfJoin, KeysRdfResolveHypermediaLinks } from '@comunica/context-entries-link-traversal';
+import { KeysInitQuery, KeysQueryOperation, KeysQuerySourceIdentify } from '@comunica/context-entries';
+import { KeysRdfJoin } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorTest } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
-import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { storeStream } from 'rdf-store-stream';
 import { termToString } from 'rdf-string';
@@ -25,14 +24,11 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
   private readonly onlyMatchingTypes: boolean;
   private readonly inference: boolean;
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
-  private readonly labelLinkWithReachability: boolean;
   public readonly queryEngine: QueryEngineBase;
 
   public constructor(args: IActorExtractLinksSolidTypeIndexArgs) {
     super(args);
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
-    this.labelLinkWithReachability =
-    args.labelLinkWithReachability === undefined ? false : args.labelLinkWithReachability;
   }
 
   public async test(action: IActionExtractLinks): Promise<IActorTest> {
@@ -52,16 +48,16 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
     // Dereference all type indexes, and collect them in one record
     const typeLinks = (await Promise.all(typeIndexes
       .map(typeIndex => this.dereferenceTypeIndex(typeIndex, action.context))))
-      // eslint-disable-next-line unicorn/prefer-object-from-entries
+
       .reduce<Record<string, ILink[]>>((acc, typeLinksInner) => {
-      for (const [ type, linksInner ] of Object.entries(typeLinksInner)) {
-        if (!acc[type]) {
-          acc[type] = [];
+        for (const [ type, linksInner ] of Object.entries(typeLinksInner)) {
+          if (!acc[type]) {
+            acc[type] = [];
+          }
+          acc[type].push(...linksInner);
         }
-        acc[type].push(...linksInner);
-      }
-      return acc;
-    }, {});
+        return acc;
+      }, {});
 
     // Avoid further processing if no type index entries were discovered
     if (Object.keys(typeLinks).length === 0) {
@@ -134,7 +130,7 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
             (solid:instance|solid:instanceContainer) ?instance.
         }`, {
         sources: [ store ],
-        [KeysRdfResolveHypermediaLinks.traverse.name]: false,
+        [KeysQuerySourceIdentify.traverse.name]: false,
         [KeysRdfJoin.skipAdaptiveJoin.name]: true,
         lenient: true,
       })).toArray();
@@ -146,7 +142,7 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
       if (!typeLinks[type]) {
         typeLinks[type] = [];
       }
-      typeLinks[type].push(this.generateLink(bindings.get('instance')!.value));
+      typeLinks[type].push({ url: bindings.get('instance')!.value });
     }
     return typeLinks;
   }
@@ -156,8 +152,10 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
    * @param predicateSubjects A dictionary of predicate and its subjects from the query.
    * @param typeSubjects A dictionary of class type and its subjects from the query.
    */
-  public async linkPredicateDomains(predicateSubjects: Record<string, RDF.Term>,
-    typeSubjects: Record<string, RDF.Term[]>): Promise<void> {
+  public async linkPredicateDomains(
+    predicateSubjects: Record<string, RDF.Term>,
+    typeSubjects: Record<string, RDF.Term[]>,
+  ): Promise<void> {
     if (Object.keys(predicateSubjects).length > 0) {
       const predicateDomainsInner = await Promise.all(Object.keys(predicateSubjects)
         .map(async predicate => [ predicate, await this.fetchPredicateDomains(predicate) ]));
@@ -188,7 +186,7 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
           <${predicateValue}> rdfs:domain ?domain.
         }`, {
       sources: [ predicateValue ],
-      [KeysRdfResolveHypermediaLinks.traverse.name]: false,
+      [KeysQuerySourceIdentify.traverse.name]: false,
       [KeysRdfJoin.skipAdaptiveJoin.name]: true,
       lenient: true,
     });
@@ -287,13 +285,6 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
 
     return links;
   }
-
-  private generateLink(url: string): ILink {
-    if (this.labelLinkWithReachability) {
-      return { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_TYPE_INDEX }};
-    }
-    return { url };
-  }
 }
 
 export interface IActorExtractLinksSolidTypeIndexArgs
@@ -325,10 +316,4 @@ export interface IActorExtractLinksSolidTypeIndexArgs
    * The Dereference RDF mediator
    */
   mediatorDereferenceRdf: MediatorDereferenceRdf;
-  /**
-   * If true the links will be label with the reachability criteria.
-   */
-  labelLinkWithReachability?: boolean;
 }
-
-export const REACHABILITY_TYPE_INDEX = 'cTypeIndex';

@@ -12,7 +12,7 @@
       "@type": "ActorExtractLinksSolidTypeIndex",
       "inference": false,
       "mediatorDereferenceRdf": { "@id": "urn:comunica:default:dereference-rdf/mediators#main" },
-      "labelLinkWithReachability":true
+      "labelLinkWithReachability": true
     }
   ]
 }

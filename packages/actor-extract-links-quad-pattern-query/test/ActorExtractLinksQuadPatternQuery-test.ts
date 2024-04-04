@@ -1,13 +1,11 @@
-import type { Readable } from 'stream';
+import type { Readable } from 'node:stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
-import { REACHABILITY_LABEL } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import {
   ActorExtractLinksQuadPatternQuery,
-  REACHABILITY_MATCH,
 } from '../lib/ActorExtractLinksQuadPatternQuery';
 
 const quad = require('rdf-quad');
@@ -29,18 +27,17 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
     });
 
     it('should be a ActorExtractLinksQuadPatternQuery constructor', () => {
-      expect(new (<any>ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
+      expect(new (<any> ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
         .toBeInstanceOf(ActorExtractLinksQuadPatternQuery);
-      expect(new (<any>ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
+      expect(new (<any> ActorExtractLinksQuadPatternQuery)({ name: 'actor', bus }))
         .toBeInstanceOf(ActorExtractLinks);
     });
 
-    it('should not be able to create new ActorExtractLinksQuadPatternQuery objects without \'new\'',
-      () => {
-        expect(() => {
-          (<any>ActorExtractLinksQuadPatternQuery)();
-        }).toThrow();
-      });
+    it('should not be able to create new ActorExtractLinksQuadPatternQuery objects without \'new\'', () => {
+      expect(() => {
+        (<any>ActorExtractLinksQuadPatternQuery)();
+      }).toThrow(`Class constructor ActorExtractLinksQuadPatternQuery cannot be invoked without 'new'`);
+    });
   });
 
   describe('An ActorExtractLinksQuadPatternQuery instance with onlyVariables false', () => {
@@ -69,18 +66,18 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
     });
 
-    it('should fail to test without query operation in context', () => {
+    it('should fail to test without query operation in context', async() => {
       context = new ActionContext({});
-      return expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).rejects
+      await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).rejects
         .toThrow(new Error('Actor actor can only work in the context of a query.'));
     });
 
-    it('should test with quad pattern query operation in context', () => {
-      return expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves.toEqual(true);
+    it('should test with quad pattern query operation in context', async() => {
+      await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves.toBe(true);
     });
 
-    it('should run on a stream and return urls matching a query with single pattern', () => {
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+    it('should run on a stream and return urls matching a query with single pattern', async() => {
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:s2' },
@@ -94,7 +91,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         });
     });
 
-    it('should run on a stream and return urls matching a query with multiple patterns', () => {
+    it('should run on a stream and return urls matching a query with multiple patterns', async() => {
       operation = FACTORY.createBgp([
         FACTORY.createPattern(
           DF.namedNode('ex:s1'),
@@ -116,7 +113,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         ),
       ]);
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:s2' },
@@ -126,7 +123,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         });
     });
 
-    it('should run on a stream and return urls matching a query with a nested pattern', () => {
+    it('should run on a stream and return urls matching a query with a nested pattern', async() => {
       operation = FACTORY.createProject(
         FACTORY.createBgp([
           FACTORY.createPattern(
@@ -139,7 +136,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         [],
       );
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:s2' },
@@ -153,7 +150,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         });
     });
 
-    it('should run on a stream and return urls matching a query with link property path', () => {
+    it('should run on a stream and return urls matching a query with link property path', async() => {
       operation = FACTORY.createPath(
         DF.namedNode('ex:s'),
         FACTORY.createLink(DF.namedNode('ex:p')),
@@ -161,7 +158,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         DF.namedNode('ex:g'),
       );
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:s2' },
@@ -175,7 +172,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         });
     });
 
-    it('should run on a stream and return urls matching a query with nps property path', () => {
+    it('should run on a stream and return urls matching a query with nps property path', async() => {
       operation = FACTORY.createPath(
         DF.namedNode('ex:s'),
         FACTORY.createNps([
@@ -187,7 +184,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         DF.namedNode('ex:g'),
       );
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:s2' },
@@ -229,7 +226,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
     });
 
-    it('should run on a stream and return urls matching a query\'s variables with multiple patterns', () => {
+    it('should run on a stream and return urls matching a query\'s variables with multiple patterns', async() => {
       operation = FACTORY.createBgp([
         FACTORY.createPattern(
           DF.namedNode('ex:s1'),
@@ -263,42 +260,12 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
         ),
       ]);
       context = new ActionContext({ [KeysInitQuery.query.name]: operation });
-      return expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
             { url: 'ex:o6' },
           ],
         });
-    });
-  });
-
-  describe('generateLink', () => {
-    let actor: ActorExtractLinksQuadPatternQuery | undefined;
-    const url = 'foo';
-    beforeEach(() => {
-      actor = undefined;
-    });
-
-    it('should generate the link with the metadata given the label frag', () => {
-      actor = new ActorExtractLinksQuadPatternQuery({
-        name: 'actor',
-        bus,
-        onlyVariables: true,
-        labelLinkWithReachability: true,
-      });
-      const expectLink = { url, metadata: { [REACHABILITY_LABEL]: REACHABILITY_MATCH }};
-      expect(actor.generateLink(url)).toStrictEqual(expectLink);
-    });
-
-    it('should not generate the metadata given the flag is false', () => {
-      actor = new ActorExtractLinksQuadPatternQuery({
-        name: 'actor',
-        bus,
-        onlyVariables: true,
-        labelLinkWithReachability: false,
-      });
-      const expectLink = { url };
-      expect(actor.generateLink(url)).toStrictEqual(expectLink);
     });
   });
 });

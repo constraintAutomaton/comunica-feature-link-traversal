@@ -6,8 +6,13 @@ import { Mediator } from '@comunica/core';
  *
  * The actors that are registered first will appear earlier in the array.
  */
-export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T extends IActorTest,
-  O extends IActorOutput> extends Mediator<A, I, T, O> implements IMediatorCombineUnionArgs<A, I, T, O> {
+export class MediatorCombineArray<
+  A extends Actor<I, T, O>,
+I extends IAction,
+T extends IActorTest,
+O extends IActorOutput,
+> extends Mediator<A, I, T, O> implements IMediatorCombineUnionArgs<A, I, T, O> {
+  public readonly filterErrors: boolean | undefined;
   public readonly fields: string[];
   public readonly combiner: (results: O[]) => O;
 
@@ -16,7 +21,7 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
     this.combiner = this.createCombiner();
   }
 
-  public async mediate(action: I): Promise<O> {
+  public override async mediate(action: I): Promise<O> {
     let testResults: IActorReply<A, I, T, O>[];
     try {
       testResults = this.publish(action);
@@ -24,17 +29,21 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
       testResults = [];
     }
 
-    // Delegate test errors.
-    const settledResult = await Promise.allSettled(testResults.map(({ reply }) => reply));
-
-    const rejectedActorIndex: Set<number> = new Set();
-    // Don't run the actor with rejected test
-    for (const [ i, element ] of settledResult.entries()) {
-      if (element.status === 'rejected') {
-        rejectedActorIndex.add(Number(i));
+    if (this.filterErrors) {
+      const _testResults: IActorReply<A, I, T, O>[] = [];
+      for (const result of testResults) {
+        try {
+          await result.reply;
+          _testResults.push(result);
+        } catch {
+          // Ignore errors
+        }
       }
+      testResults = _testResults;
     }
-    testResults = testResults.filter((_, index) => !rejectedActorIndex.has(index));
+
+    // Delegate test errors.
+    await Promise.all(testResults.map(({ reply }) => reply));
 
     // Run action on all actors.
     const results: O[] = await Promise.all(testResults.map(result => result.actor.runObservable(action)));
@@ -43,7 +52,7 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
     return this.combiner(results);
   }
 
-  protected mediateWith(): Promise<A> {
+  protected override mediateWith(): Promise<A> {
     throw new Error('Method not supported.');
   }
 
@@ -53,20 +62,27 @@ export class MediatorCombineArray<A extends Actor<I, T, O>, I extends IAction, T
       for (const field of this.fields) {
         data[field] = [];
         // eslint-disable-next-line unicorn/prefer-spread
-        [[]].concat(results.map((result: any) => result[field]))
-          .forEach((value, index, arr) => {
-            if (value) {
-              data[field].push(...value);
-            }
-          });
+        for (const value of [[]].concat(results.map((result: any) => result[field]))) {
+          if (value) {
+            data[field].push(...value);
+          }
+        }
       }
       return data;
     };
   }
 }
 
-export interface IMediatorCombineUnionArgs<A extends Actor<I, T, O>, I extends IAction, T extends IActorTest,
-  O extends IActorOutput> extends IMediatorArgs<A, I, T, O> {
+export interface IMediatorCombineUnionArgs<
+  A extends Actor<I, T, O>,
+I extends IAction,
+T extends IActorTest,
+O extends IActorOutput,
+> extends IMediatorArgs<A, I, T, O> {
+  /**
+   * If actors that throw test errors should be ignored
+   */
+  filterErrors?: boolean;
   /**
    * The field names of the test result fields over which must be mediated.
    */

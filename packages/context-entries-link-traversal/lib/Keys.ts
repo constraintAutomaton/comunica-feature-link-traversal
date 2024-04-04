@@ -9,10 +9,7 @@ import type { AnnotateSourcesType, FilterFunction } from '@comunica/types-link-t
  */
 
 export const KeysRdfResolveHypermediaLinks = {
-  /**
-   * A flag for indicating if traversal should be enabled. Defaults to true.
-   */
-  traverse: new ActionContextKey<boolean>('@comunica/actor-rdf-resolve-hypermedia-links-traverse:traverse'),
+
   /**
    * Context entry for indicating the type of source annotation.
    */

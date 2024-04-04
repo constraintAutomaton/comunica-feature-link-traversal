@@ -19,17 +19,17 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
           mediatorRdfResolveHypermediaLinksQueue,
         });
       });
-      it('should test', () => {
-        return expect(actor.test({ firstUrl: 'first', context: new ActionContext() })).resolves.toBeTruthy();
+      it('should test', async() => {
+        await expect(actor.test({ firstUrl: 'first', context: new ActionContext() })).resolves.toBe(true);
       });
 
-      it('should not test when called recursively', () => {
-        return expect(actor.test({
+      it('should not test when called recursively', async() => {
+        await expect(actor.test({
           firstUrl: 'first',
           context: new ActionContext({
             [KEY_CONTEXT_WRAPPED.name]: true,
           }),
-        })).rejects.toThrowError('Unable to wrap link queues multiple times');
+        })).rejects.toThrow('Unable to wrap link queues multiple times');
       });
     });
 
@@ -72,7 +72,7 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
           bus,
           mediatorRdfResolveHypermediaLinksQueue: mediator,
         });
-        // eslint-disable-next-line unicorn/no-useless-undefined
+
         (<jest.Mock>action.context.get).mockReturnValueOnce(undefined);
 
         await expect(actor.run(action)).rejects.toBeInstanceOf(Error);
@@ -93,7 +93,7 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
 
         const expectedLinkQueueWrapper = new LinkQueueFilterLinks(linkQueue, new Map(), undefined);
 
-        expect(await actor.run(action)).toStrictEqual({ linkQueue: expectedLinkQueueWrapper });
+        await expect(actor.run(action)).resolves.toStrictEqual({ linkQueue: expectedLinkQueueWrapper });
         expect(action.context.set).toHaveBeenCalledTimes(1);
         expect(action.context.set).toHaveBeenLastCalledWith(KEY_CONTEXT_WRAPPED, true);
       });

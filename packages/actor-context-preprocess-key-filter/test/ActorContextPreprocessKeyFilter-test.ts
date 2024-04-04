@@ -15,7 +15,7 @@ describe('ActorContextPreprocessKeyFilter', () => {
 
       it('should test', async() => {
         const action: any = {};
-        expect(await actor.test(action)).toBe(true);
+        await expect(actor.test(action)).resolves.toBe(true);
       });
     });
 
@@ -43,7 +43,6 @@ describe('ActorContextPreprocessKeyFilter', () => {
       });
 
       it('should return a context with the filter if it is not defined', async() => {
-        // eslint-disable-next-line unicorn/no-useless-undefined
         (<jest.Mock> action.context.get).mockReturnValue(undefined);
         (<jest.Mock> action.context.set).mockReturnValue('foo');
         action.foo = 'bar';

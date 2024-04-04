@@ -17,10 +17,10 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
       throw new Error('the wrapped link queue should be empty upon construction of the wrapper');
     }
     this.filterMap = filterMap;
-    this.calculateSize = calculateSize === undefined ? true : calculateSize;
+    this.calculateSize = calculateSize ?? true;
   }
 
-  public push(link: ILink, parent: ILink): boolean {
+  public override push(link: ILink, parent: ILink): boolean {
     for (const filter of this.filterMap.values()) {
       if (filter(link.url)) {
         return false;
@@ -36,7 +36,7 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
     return hasBeenPushed;
   }
 
-  public pop(): ILink | undefined {
+  public override pop(): ILink | undefined {
     let nextLink: ILink | undefined;
     do {
       nextLink = super.pop();
@@ -61,21 +61,21 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
   }
 
   /**
-     * Determine if the link queue is empty or not with same limitation of
-     * the getSize method
-     * @returns {boolean} whether the link queue is empty or not
-     */
-  public isEmpty(): boolean {
+   * Determine if the link queue is empty or not with same limitation of
+   * the getSize method
+   * @returns {boolean} whether the link queue is empty or not
+   */
+  public override isEmpty(): boolean {
     return this.getSize() === 0;
   }
 
   /**
-     * Will return the size of the link queue considering the current filters.
-     * The size is calculated from an internal link set , so the results might be invalid
-     * if the link queue or another wrapper does special calculation for the size of queue.
-     * @returns {number} the size the link queue
-     */
-  public getSize(): number {
+   * Will return the size of the link queue considering the current filters.
+   * The size is calculated from an internal link set , so the results might be invalid
+   * if the link queue or another wrapper does special calculation for the size of queue.
+   * @returns {number} the size the link queue
+   */
+  public override getSize(): number {
     if (super.isEmpty()) {
       return 0;
     }
@@ -98,11 +98,11 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
   }
 
   /**
-     * It will return undefined upon the condition of the wrapped link queue and
-     * if the next link doesn't respect the filter
-     * @returns {ILink | undefined} next link
-     */
-  public peek(): ILink | undefined {
+   * It will return undefined upon the condition of the wrapped link queue and
+   * if the next link doesn't respect the filter
+   * @returns {ILink | undefined} next link
+   */
+  public override peek(): ILink | undefined {
     const link = super.peek();
     if (link === undefined) {
       return link;

@@ -15,7 +15,10 @@ import { LinkQueueFilterLinks } from './LinkQueueFilterLinks';
 export class ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks extends ActorRdfResolveHypermediaLinksQueue {
   private readonly mediatorRdfResolveHypermediaLinksQueue: Mediator<
   Actor<IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput>,
-  IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput>;
+  IActionRdfResolveHypermediaLinksQueue,
+IActorTest,
+IActorRdfResolveHypermediaLinksQueueOutput
+>;
 
   private readonly calculateSize?: boolean;
   private readonly currentQuery: string | undefined = undefined;
@@ -52,16 +55,18 @@ export interface IActorRdfResolveHypermediaLinksQueueWrapperFilterLinksArgs
   extends IActorArgs<IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput> {
   mediatorRdfResolveHypermediaLinksQueue: Mediator<
   Actor<IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput>,
-  IActionRdfResolveHypermediaLinksQueue, IActorTest, IActorRdfResolveHypermediaLinksQueueOutput>;
+  IActionRdfResolveHypermediaLinksQueue,
+IActorTest,
+IActorRdfResolveHypermediaLinksQueueOutput
+>;
   /**
-     * Calculate the size of the link queue considering the filtered links.
-     * Is useful if the getSize and isEmpty are called often because their computation
-     * can be expensive.
-     */
+   * Calculate the size of the link queue considering the filtered links.
+   * Is useful if the getSize and isEmpty are called often because their computation
+   * can be expensive.
+   */
   calculateSize?: boolean;
 }
 
 export const KEY_CONTEXT_WRAPPED = new ActionContextKey<boolean>(
   '@comunica/actor-rdf-resolve-hypermedia-links-queue-wrapper-filter-links:wrapped',
 );
-
