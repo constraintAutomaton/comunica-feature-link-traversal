@@ -1670,8 +1670,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 });
 
 async function rdfFromJsonLDString(jsonld: string): Promise<RDF.Quad[]> {
-  // eslint-disable-next-line ts/no-misused-promises, no-async-promise-executor
-  return new Promise(async(resolve, rejects) => {
+  return new Promise((resolve, rejects) => {
     const quads: RDF.Quad[] = [];
     const contextParser = new ContextParser({
       documentLoader: new FetchDocumentLoader(),
@@ -1679,25 +1678,26 @@ async function rdfFromJsonLDString(jsonld: string): Promise<RDF.Quad[]> {
       expandContentTypeToBase: true,
       remoteContextsDepthLimit: 1,
     });
-    const context = await contextParser.parse([ SHEX_CONTEXT ]);
 
-    const jsonldParser = new JsonLdParser({
-      streamingProfile: false,
-      context,
-      skipContextValidation: true,
-    });
-    jsonldParser
-      .on('data', (quad: RDF.Quad) => {
-        quads.push(quad);
-      })
-      .on('error', (error: any) => {
-        rejects(error);
-      })
-      .on('end', () => {
-        resolve(quads);
+    contextParser.parse([ SHEX_CONTEXT ]).then((context) => {
+      const jsonldParser = new JsonLdParser({
+        streamingProfile: false,
+        context,
+        skipContextValidation: true,
       });
+      jsonldParser
+        .on('data', (quad: RDF.Quad) => {
+          quads.push(quad);
+        })
+        .on('error', (error: any) => {
+          rejects(error);
+        })
+        .on('end', () => {
+          resolve(quads);
+        });
 
-    jsonldParser.write(jsonld);
-    jsonldParser.end();
+      jsonldParser.write(jsonld);
+      jsonldParser.end();
+    }).catch((err: any) => rejects(err));
   });
 }
