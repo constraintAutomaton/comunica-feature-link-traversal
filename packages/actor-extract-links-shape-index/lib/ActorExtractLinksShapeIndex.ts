@@ -12,15 +12,17 @@ import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
-  type Query,
-  type IShape,
   generateQuery,
   shapeFromQuads,
   reportAlignment,
+} from 'query-shape-detection';
+import type {
   IResult,
+  Query,
+  IShape,
 } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
-import { Algebra } from 'sparqlalgebrajs';
+import type { Algebra } from 'sparqlalgebrajs';
 
 const DF = new DataFactory<RDF.BaseQuad>();
 
@@ -111,12 +113,18 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
-    if (filters === undefined) {
+    if (filters === undefined || filters?.size === 0) {
       filters = new Map();
       action.context = action.context.set(KeyFilter.filters, filters);
       this.shapeIndexHandled.clear();
+      this.query = generateQuery(query);
     }
+
     this.filters = filters;
+    if (this.filters.size === 0) {
+      // A placeholder to avoid flushing the state when the query has not being changed
+      this.filters.set('placeholder', /* istanbul ignore next */ (_: string) => false);
+    }
 
     const shapeIndexLocation = await this.discoverShapeIndexLocationFromTriples(action.metadata);
     if (shapeIndexLocation instanceof Error) {
@@ -140,15 +148,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       };
     }
 
-    const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex, query);
+    const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex);
 
     this.addRejectedEntryFilters(filteredResource);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
-    if (links instanceof Error) {
-      return {
-        links: [],
-      };
-    }
     return { links };
   }
 
@@ -158,6 +161,20 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public getFilters(): Map<string, FilterFunction> {
     return new Map(this.filters);
+  }
+
+  /**
+   * Provide a semi deep copy of the query.
+   * Changing the value of the returned value will not affect the actor
+   * but the underlying triples are not deep copies, but the members of the class are
+   * immutable.
+   * @returns {Query|undefined} - A semi deep copy of the query
+   */
+  public getQuery(): Query | undefined {
+    if (this.query === undefined) {
+      return undefined;
+    }
+    return new Map(this.query);
   }
 
   /**
@@ -213,7 +230,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [...links, ...iris];
+        links = [ ...links, ...iris ];
       }
     }
     return links;
@@ -282,36 +299,34 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * Calculate the alignment of the shapes from the shape index with the query
    * and return an object describing the result.
    * @param {IShapeIndex} shapeIndex - The shape index
-   * @param {string} query - The query
    * @returns {IFilteredIndexEntries} An object dividing the align and non-align resource IRIs
    */
-  public filterResourcesFromShapeIndex(shapeIndex: IShapeIndex, query: Algebra.Operation): IFilteredIndexEntries {
+  public filterResourcesFromShapeIndex(shapeIndex: IShapeIndex): IFilteredIndexEntries {
     const resp: IFilteredIndexEntries = {
       accepted: [],
       rejected: [],
     };
-    if ((this.query === undefined) || (this.filters.size === 0)) {
-      this.query = generateQuery(query);
-    }
+    if (this.query !== undefined) {
+      const shapes = ActorExtractLinksShapeIndex.getShapesFromShapeIndex(shapeIndex);
 
-    const shapes = ActorExtractLinksShapeIndex.getShapesFromShapeIndex(shapeIndex);
+      const resultsReport: IResult = reportAlignment({
+        query: this.query,
+        shapes,
+        option: {
+          shapeIntersection: this.shapeIntersection,
+          strongAlignment: this.strongAlignment,
+        },
+      });
 
-    const resultsReport: IResult = reportAlignment({
-      query: this.query,
-      shapes,
-      option: {
-        shapeIntersection: this.shapeIntersection,
-        strongAlignment: this.strongAlignment
-      }
-    });
-
-    for (const [shapeName, entry] of shapeIndex) {
-      if (resultsReport.unAlignedShapes.has(shapeName)) {
-        resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
-      } else {
-        resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+      for (const [ shapeName, entry ] of shapeIndex) {
+        if (resultsReport.unAlignedShapes.has(shapeName)) {
+          resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+        } else {
+          resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+        }
       }
     }
+
     return resp;
   }
 
@@ -324,7 +339,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
     return new Promise<IShapeIndex | Error>((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
-        .then(async (response) => {
+        .then(async(response) => {
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -339,7 +354,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           });
           // I don't see a simple alternative
           // eslint-disable-next-line ts/no-misused-promises
-          response.data.on('end', async () => {
+          response.data.on('end', async() => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -374,7 +389,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     ) {
       const entry = shapeIndexInformation.get(quad.subject.value);
       if (entry === undefined) {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
       } else {
         entry.target = { iri: quad.object.value, isAContainer };
       }
@@ -394,7 +409,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>, context: IActionContext): Promise<IShapeIndex> {
     const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [_subject, shape_target] of shapeIndexInformation) {
+    for (const [ _subject, shape_target ] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -435,20 +450,20 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
     return new Promise((resolve) => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async (response) => {
+      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async(response) => {
         const shape = await shapeFromQuads(response.data, iri);
         if (shape instanceof Error) {
           resolve(shape);
           return;
         }
-        resolve([shape, iri]);
+        resolve([ shape, iri ]);
       }, error => resolve(error));
     });
   }
 
   /**
    * Get the shape form the shape index.
-   * @param {IShapeIndex} shapeIndex 
+   * @param {IShapeIndex} shapeIndex
    * @returns {IShape[]} the shape from the index
    */
   private static getShapesFromShapeIndex(shapeIndex: IShapeIndex): IShape[] {
@@ -489,7 +504,7 @@ export interface IActorExtractLinksShapeIndexArgs
   /**
    * Consider the strong alignment between the shape and the query.
    */
-  strongAlignment?: boolean
+  strongAlignment?: boolean;
 }
 
 /**

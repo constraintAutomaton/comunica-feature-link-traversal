@@ -1,10 +1,14 @@
 {
   "private": true,
+  "packageManager": "yarn@1.22.22",
   "repository": "https://github.com/comunica/comunica-feature-link-traversal/",
   "workspaces": [
     "engines/*",
     "packages/*"
   ],
+  "engines": {
+    "yarn": "^1.22.19"
+  },
   "scripts": {
     "test-changed": "lerna run test --since HEAD",
     "build-changed": "lerna run build --since HEAD",
@@ -84,9 +88,5 @@
     "build",
     "lint",
     "test:unit"
-  ],
-  "engines": {
-    "yarn": "^1.22.19"
-  },
-  "packageManager": "yarn@1.22.22"
+  ]
 }

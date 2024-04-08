@@ -1,14 +1,14 @@
 import { KeysInitQuery } from '@comunica/context-entries';
 import { KeyFilter } from '@comunica/context-entries-link-traversal';
-import type { ActionContextKey } from '@comunica/core';
 import { ActionContext, Bus } from '@comunica/core';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
-import type { IShape } from 'query-shape-detection';
+import { type IShape, generateQuery } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
+import { translate } from 'sparqlalgebrajs';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
 
 // eslint-disable-next-line import/extensions
@@ -272,8 +272,8 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(respIri).toBe(iri);
         expect(shape.name).toBe(iri);
         expect(shape.closed).toBe(false);
-        expect(shape.expectedPredicate()).toStrictEqual([ 'http://exemple.com#id' ]);
-        expect(shape.rejectedPredicate()).toStrictEqual([]);
+        expect(shape.positivePredicates).toStrictEqual([ 'http://exemple.com#id' ]);
+        expect(shape.negativePredicates).toStrictEqual([]);
       });
     });
 
@@ -299,7 +299,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         }> = new Map();
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual([]);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
         expect(spy).not.toHaveBeenCalled();
       });
 
@@ -316,7 +316,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
         spy.mockResolvedValue(new Error('foo'));
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual([]);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
       });
 
       it('should return an empty shape index given that every shape information are incomplete', async() => {
@@ -330,15 +330,12 @@ describe('ActorExtractLinksShapeIndex', () => {
         ]);
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual([]);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
         expect(spy).not.toHaveBeenCalled();
       });
 
       it('should return a shape index with element from complete information', async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map([
+        const shapeIndexInformation: Map<string, any> = new Map([
           [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
           [ 'foo1', { shape: 'bar1' }],
           [ 'foo2', {}],
@@ -347,22 +344,36 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
         spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
           return new Promise((resolve) => {
-            resolve([{}, iri ]);
+            let shape: any;
+            for (const value of shapeIndexInformation.values()) {
+              if (value.shape === iri) {
+                shape = { name: iri };
+              }
+            }
+            resolve([ shape, iri ]);
           });
         });
 
-        const expectedResult = [
-          {
-            isAContainer: false,
-            iri: 'boo',
-            shape: {},
-          },
-          {
-            isAContainer: true,
-            iri: 'boo3',
-            shape: {},
-          },
-        ];
+        const expectedResult = new Map(
+          [
+            [
+              'bar',
+              {
+                isAContainer: false,
+                iri: 'boo',
+                shape: { name: 'bar' },
+              },
+            ],
+            [
+              'bar3',
+              {
+                isAContainer: true,
+                iri: 'boo3',
+                shape: { name: 'bar3' },
+              },
+            ],
+          ],
+        );
 
         await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
         expect(spy).toHaveBeenCalledTimes(2);
@@ -386,23 +397,35 @@ describe('ActorExtractLinksShapeIndex', () => {
             if (iri === 'bar4') {
               resolve(new Error('foo'));
             } else {
-              resolve([{}, iri ]);
+              let shape: any;
+              for (const value of shapeIndexInformation.values()) {
+                if (value.shape === iri) {
+                  shape = { name: iri };
+                }
+              }
+              resolve([ shape, iri ]);
             }
           });
         });
 
-        const expectedResult = [
-          {
-            isAContainer: false,
-            iri: 'boo',
-            shape: {},
-          },
-          {
-            isAContainer: true,
-            iri: 'boo3',
-            shape: {},
-          },
-        ];
+        const expectedResult = new Map([
+          [
+            'bar',
+            {
+              isAContainer: false,
+              iri: 'boo',
+              shape: { name: 'bar' },
+            },
+          ],
+          [
+            'bar3',
+            {
+              isAContainer: true,
+              iri: 'boo3',
+              shape: { name: 'bar3' },
+            },
+          ],
+        ]);
 
         await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
         expect(spy).toHaveBeenCalledTimes(3);
@@ -421,27 +444,42 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
         spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
           return new Promise((resolve) => {
-            resolve([{}, iri ]);
+            let shape: any;
+            for (const value of shapeIndexInformation.values()) {
+              if (value.shape === iri) {
+                shape = { name: iri };
+              }
+            }
+            resolve([ shape, iri ]);
           });
         });
 
-        const expectedResult = [
-          {
-            isAContainer: false,
-            iri: 'boo',
-            shape: {},
-          },
-          {
-            isAContainer: true,
-            iri: 'boo1',
-            shape: {},
-          },
-          {
-            isAContainer: false,
-            iri: 'boo2',
-            shape: {},
-          },
-        ];
+        const expectedResult = new Map([
+          [
+            'bar',
+            {
+              isAContainer: false,
+              iri: 'boo',
+              shape: { name: 'bar' },
+            },
+          ],
+          [
+            'bar1',
+            {
+              isAContainer: true,
+              iri: 'boo1',
+              shape: { name: 'bar1' },
+            },
+          ],
+          [
+            'bar2',
+            {
+              isAContainer: false,
+              iri: 'boo2',
+              shape: { name: 'bar2' },
+            },
+          ],
+        ]);
 
         await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
         expect(spy).toHaveBeenCalledTimes(3);
@@ -491,7 +529,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual([]);
+        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(new Map());
       });
 
       it('should return an error if the quad stream return an error', async() => {
@@ -718,7 +756,7 @@ describe('ActorExtractLinksShapeIndex', () => {
     });
 
     describe('filterResourcesFromShapeIndex', () => {
-      let shapeIndex: any = [];
+      let shapeIndex: any = new Map();
 
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
@@ -730,154 +768,145 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
         });
-        shapeIndex = [
-          {
-            isAContainer: true,
-            iri: 'foo',
-            shape: {
-              name: 'foo',
-              expectedPredicate: () => [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
-              rejectedPredicate() {
-                return [];
+        shapeIndex = new Map([
+          [
+            'foo',
+            {
+              isAContainer: true,
+              iri: 'foo',
+              shape: {
+                name: 'foo',
+                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+                negativePredicates: [],
               },
             },
-          },
-          {
-            isAContainer: true,
-            iri: 'foo1',
-            shape: {
-              name: 'foo1',
-              expectedPredicate: () => [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
-              rejectedPredicate() {
-                return [];
+          ],
+          [
+            'foo1',
+            {
+              isAContainer: true,
+              iri: 'foo1',
+              shape: {
+                name: 'foo1',
+                positivePredicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
+                negativePredicates: [],
               },
             },
-          },
-          {
+          ],
+          [
+            'foo2',
+            {
 
-            isAContainer: true,
-            iri: 'foo2',
-            shape: {
-              name: 'foo2',
-              expectedPredicate: () => [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
-              rejectedPredicate() {
-                return [];
+              isAContainer: true,
+              iri: 'foo2',
+              shape: {
+                name: 'foo2',
+                positivePredicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
+                negativePredicates: [],
               },
             },
-          },
-        ];
+          ],
+        ]);
         jest.restoreAllMocks();
       });
 
       it('should return an empty filtered resources object given an empty shape index', () => {
-        const query = '';
-        shapeIndex = [];
+        const query = translate(`SELECT * WHERE { 
+          ?x ?o ?z .
+          ?x <http://exemple.ca/1> ?z .
+          ?z <http://exemple.ca/2023> "abc" .
+          ?w <http://exemple.ca/4> <http://objet.fr> .
+          <http://sujet.cm> <http://predicat.cm> "def" .
+          FILTER (year(?x) > 2000)
+      }`);
+        (<any>actor).query = generateQuery(query);
+        shapeIndex = new Map();
         const expectedFilteredResource = {
           accepted: [],
           rejected: [],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex, query);
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
       it('should return an empty filtered resources object given a query targeting no properties', () => {
-        const query = 'SELECT * WHERE { ?x ?o ?z }';
+        const query = translate('SELECT * WHERE { ?x ?o ?z }');
+        (<any>actor).query = generateQuery(query);
 
+        const expectedFilteredResource = {
+          accepted: [
+            {
+              isAContainer: true,
+              iri: 'foo',
+            },
+            {
+              isAContainer: true,
+              iri: 'foo1',
+            },
+            {
+
+              isAContainer: true,
+              iri: 'foo2',
+
+            },
+          ],
+          rejected: [],
+        };
+
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        expect(resp).toStrictEqual(expectedFilteredResource);
+      });
+
+      it('should return the correct filtered resources object given a query multiple properties', () => {
+        const query = translate(`SELECT * WHERE { 
+          ?x ?o ?z .
+          ?x <http://exemple.ca/1> ?z .
+          ?z <http://exemple.ca/2023> "abc" .
+          ?w <http://exemple.ca/4> <http://objet.fr> .
+          <http://sujet.cm> <http://predicat.cm> "def" .
+          FILTER (year(?x) > 2000)
+      }`);
+        (<any>actor).query = generateQuery(query);
+
+        const expectedFilteredResource = {
+          accepted: [
+            {
+              isAContainer: true,
+              iri: 'foo',
+            },
+            {
+
+              isAContainer: true,
+              iri: 'foo2',
+
+            },
+          ],
+          rejected: [
+            {
+              isAContainer: true,
+              iri: 'foo1',
+            },
+          ],
+        };
+
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        // We just want to compare unordered arrays
+        // eslint-disable-next-line ts/require-array-sort-compare
+        expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
+        // We just want to compare unordered arrays
+        // eslint-disable-next-line ts/require-array-sort-compare
+        expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
+      });
+
+      it('should return an empty filter ressource result given an undefined query', () => {
         const expectedFilteredResource = {
           accepted: [],
           rejected: [],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex, query);
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
         expect(resp).toStrictEqual(expectedFilteredResource);
-      });
-
-      it('should return the correct filtered resources object given a query multiple properties', () => {
-        const query = `SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x <http://exemple.ca/1> ?z .
-          ?z <http://exemple.ca/2023> "abc" .
-          ?w <http://exemple.ca/4> <http://objet.fr> .
-          <http://sujet.cm> <http://predicat.cm> "def" .
-          FILTER (year(?x) > 2000)
-      }`;
-
-        const expectedFilteredResource = {
-          accepted: [
-            {
-              isAContainer: true,
-              iri: 'foo',
-            },
-            {
-
-              isAContainer: true,
-              iri: 'foo2',
-
-            },
-          ],
-          rejected: [
-            {
-              isAContainer: true,
-              iri: 'foo1',
-            },
-          ],
-        };
-
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex, query);
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
-      });
-
-      it('should adapt to a query change', () => {
-        const query = `SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x <http://exemple.ca/1> ?z .
-          ?z <http://exemple.ca/2023> "abc" .
-          ?w <http://exemple.ca/4> <http://objet.fr> .
-          <http://sujet.cm> <http://predicat.cm> "def" .
-          FILTER (year(?x) > 2000)
-      }`;
-
-        const expectedFilteredResource = {
-          accepted: [
-            {
-              isAContainer: true,
-              iri: 'foo',
-            },
-            {
-
-              isAContainer: true,
-              iri: 'foo2',
-
-            },
-          ],
-          rejected: [
-            {
-              isAContainer: true,
-              iri: 'foo1',
-            },
-          ],
-        };
-
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex, query);
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
-
-        const query2 = `SELECT * WHERE { 
-          ?x ?o ?z .
-      }`;
-        const resp2 = actor.filterResourcesFromShapeIndex(shapeIndex, query2);
-        expect(resp2.accepted).toHaveLength(0);
-        expect(resp2.rejected).toHaveLength(0);
       });
     });
 
@@ -1477,11 +1506,18 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
-        spyDiscover.mockReturnValue(new Error('foo'));
+        spyDiscover.mockResolvedValue(new Error('foo'));
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn(),
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                return translate('SELECT * WHERE { ?x ?o ?z }');
+              }
+              if (KeyFilter.filters) {
+                return undefined;
+              }
+            }),
             set: jest.fn(),
           },
         };
@@ -1505,7 +1541,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn(),
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                return translate('SELECT * WHERE { ?x ?o ?z }');
+              }
+              if (KeyFilter.filters) {
+                return undefined;
+              }
+            }),
             set: jest.fn(),
           },
         };
@@ -1536,15 +1579,20 @@ describe('ActorExtractLinksShapeIndex', () => {
           rejected: [],
         });
         jest.spyOn(actor, 'addRejectedEntryFilters');
-        const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
-        spyAddIri.mockResolvedValue(new Error('foo'));
+        const spygetResourceIriFromContainer = jest.spyOn(actor, 'getResourceIriFromContainer');
+        spygetResourceIriFromContainer.mockResolvedValue(new Error('foo'));
 
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn()
-              .mockReturnValueOnce('a')
-              .mockReturnValue(new Map([[ 'a', () => true ]])),
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                return translate('SELECT * WHERE { ?x ?o ?z }');
+              }
+              if (KeyFilter.filters) {
+                return new Map([[ 'a', () => true ]]);
+              }
+            }),
             set: jest.fn(),
           },
         };
@@ -1566,7 +1614,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValueOnce([]);
+        spyGenerateShapeIndex.mockResolvedValueOnce(new Map());
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValueOnce({
           accepted: [],
           rejected: [],
@@ -1578,7 +1626,14 @@ describe('ActorExtractLinksShapeIndex', () => {
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn(),
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                return translate('SELECT * WHERE { ?x ?o ?z }');
+              }
+              if (KeyFilter.filters) {
+                return undefined;
+              }
+            }),
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -1599,7 +1654,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValue([]);
+        spyGenerateShapeIndex.mockResolvedValue(new Map());
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValue({
           accepted: [],
           rejected: [],
@@ -1608,21 +1663,45 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
         spyAddIri.mockResolvedValue([{ url: 'foo' }]);
 
+        let i = 0;
+        const firstQuery = translate(`SELECT * WHERE { ?x ?o ?z }`);
+        const secondQuery = translate(`
+          SELECT * WHERE { 
+            ?x ?o ?z .
+            ?x <http://exemple.ca/1> ?z .
+            ?z <http://exemple.ca/2023> "abc" .
+            ?w <http://exemple.ca/4> <http://objet.fr> .
+            <http://sujet.cm> <http://predicat.cm> "def" .
+            FILTER (year(?x) > 2000)
+        }`);
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn().mockReturnValueOnce('foo'),
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                i += 1;
+                if (i === 1) {
+                  return firstQuery;
+                }
+                return secondQuery;
+              }
+              if (KeyFilter.filters) {
+                return undefined;
+              }
+            }),
             set: jest.fn().mockReturnThis(),
           },
         };
 
         await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'foo' }]});
         expect(action.context.set).toHaveBeenCalledTimes(1);
+        expect(actor.getQuery()).toStrictEqual(generateQuery(firstQuery));
 
-        action.context.get.mockReturnValueOnce('bar');
-        await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'foo' }]});
+        spyAddIri.mockResolvedValue([{ url: 'bar' }]);
+        await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'bar' }]});
+        expect(actor.getQuery()).toStrictEqual(generateQuery(secondQuery));
+
         expect(action.context.set).toHaveBeenCalledTimes(2);
-        expect(action.context.set).toHaveBeenLastCalledWith(KeyFilter.filters, new Map());
       });
 
       it('should return an empty link array given the shape index has already been handled', async() => {
@@ -1638,25 +1717,19 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
         jest.spyOn(actor, 'addRejectedEntryFilters');
-        jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue([]);
+        jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue(new Map());
 
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
         spyAddIri.mockResolvedValue([{ url: 'foo' }]);
-        const filter = new Map();
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn().mockImplementation((val: ActionContextKey<any>) => {
-              if (val.name === KeysInitQuery.queryString.name) {
-                return `
-                SELECT *
-                WHERE {
-                  ?s ?p ?o .
-                }
-                `;
+            get: jest.fn((key: any) => {
+              if (key === KeysInitQuery.query) {
+                return translate('SELECT * WHERE { ?x ?o ?z }');
               }
-              if (val.name === KeyFilter.filters.name) {
-                return filter;
+              if (KeyFilter.filters) {
+                return actor.getFilters();
               }
             }),
             set: jest.fn().mockReturnThis(),
@@ -1664,6 +1737,65 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'foo' }]});
         await expect(actor.run(action)).resolves.toStrictEqual({ links: []});
+      });
+    });
+
+    describe('getQuery', () => {
+      beforeEach(() => {
+        bus = new Bus({ name: 'bus' });
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri,
+          restrictedToSolid: true,
+        });
+      });
+
+      it('should get undefined if the query is undefined', () => {
+        expect(actor.getQuery()).toBeUndefined();
+      });
+
+      it('should get a deep copy of the query', () => {
+        const query = translate(`SELECT * WHERE { 
+          ?x ?o ?z .
+          ?x <http://exemple.ca/1> ?z .
+          ?z <http://exemple.ca/2023> "abc" .
+          ?w <http://exemple.ca/4> <http://objet.fr> .
+          <http://sujet.cm> <http://predicat.cm> "def" .
+          FILTER (year(?x) > 2000)
+      }`);
+        (<any>actor).query = generateQuery(query);
+        const resp: any = actor.getQuery();
+
+        expect(resp).toStrictEqual(generateQuery(query));
+        resp?.set('W', {});
+        expect(resp).not.toStrictEqual(generateQuery(query));
+      });
+    });
+
+    describe('getFilters', () => {
+      beforeEach(() => {
+        bus = new Bus({ name: 'bus' });
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri,
+          restrictedToSolid: true,
+        });
+      });
+
+      it('should get a deep copy of the filter', () => {
+        const filters: any = new Map([[ 'a', () => true ]]);
+        (<any>actor).filters = filters;
+        const resp: any = actor.getFilters();
+
+        expect(resp).toStrictEqual(filters);
+        filters.set('W', () => false);
+        expect(resp).not.toStrictEqual(filters);
       });
     });
   });
