@@ -6,7 +6,7 @@ import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
-import { type IShape, generateQuery } from 'query-shape-detection';
+import { type IShape, generateQuery, Shape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 import { translate } from 'sparqlalgebrajs';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
@@ -774,11 +774,12 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo',
-              shape: {
+              shape: new Shape({
+                closed:true,
                 name: 'foo',
                 positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
                 negativePredicates: [],
-              },
+              }),
             },
           ],
           [
@@ -786,11 +787,12 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo1',
-              shape: {
+              shape:new Shape({
+                closed:true,
                 name: 'foo1',
                 positivePredicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
                 negativePredicates: [],
-              },
+              }),
             },
           ],
           [
@@ -799,11 +801,12 @@ describe('ActorExtractLinksShapeIndex', () => {
 
               isAContainer: true,
               iri: 'foo2',
-              shape: {
+              shape: new Shape({
+                closed:true,
                 name: 'foo2',
                 positivePredicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
                 negativePredicates: [],
-              },
+              }),
             },
           ],
         ]);
@@ -906,6 +909,87 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        expect(resp).toStrictEqual(expectedFilteredResource);
+      });
+
+      it('should return the correct filtered resource given an actor with shapeIntersection', ()=>{
+        actor = new ActorExtractLinksShapeIndex({
+          name: 'actor',
+          bus,
+          mediatorDereferenceRdf,
+          addIriFromContainerInLinkQueue,
+          cacheShapeIndexIri,
+          restrictedToSolid: true,
+          shapeIntersection:true
+        });
+        shapeIndex = new Map([
+          [
+            'foo',
+            {
+              isAContainer: true,
+              iri: 'foo',
+              shape: {
+                name: 'foo',
+                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+              },
+            },
+          ],
+          [
+            'foo1',
+            {
+              isAContainer: true,
+              iri: 'foo1',
+              shape: {
+                name: 'foo1',
+                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+              },
+            },
+          ],
+          [
+            'foo2',
+            {
+
+              isAContainer: true,
+              iri: 'foo2',
+              shape: {
+                name: 'foo2',
+                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/4' ],
+              },
+            },
+          ],
+        ]);
+
+        const query = translate(`SELECT * WHERE { 
+          ?x ?o ?z .
+          ?x <http://exemple.ca/1> ?z .
+          ?z <http://exemple.ca/2023> "abc" .
+          ?x <http://exemple.ca/4> <http://objet.fr> .
+          <http://sujet.cm> <http://predicat.cm> "def" .
+          FILTER (year(?x) > 2000)
+      }`);
+        (<any>actor).query = generateQuery(query);
+
+        const expectedFilteredResource = {
+          accepted: [
+            {
+              isAContainer: true,
+              iri: 'foo2',
+            }
+          ],
+          rejected: [
+            {
+              isAContainer: true,
+              iri: 'foo',
+            },
+            {
+              isAContainer: true,
+              iri: 'foo1',
+            }
+          ],
+        };
+
+        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
     });
