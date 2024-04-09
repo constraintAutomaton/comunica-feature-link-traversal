@@ -775,7 +775,7 @@ describe('ActorExtractLinksShapeIndex', () => {
               isAContainer: true,
               iri: 'foo',
               shape: new Shape({
-                closed:true,
+                closed: true,
                 name: 'foo',
                 positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
                 negativePredicates: [],
@@ -787,8 +787,8 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo1',
-              shape:new Shape({
-                closed:true,
+              shape: new Shape({
+                closed: true,
                 name: 'foo1',
                 positivePredicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
                 negativePredicates: [],
@@ -802,7 +802,7 @@ describe('ActorExtractLinksShapeIndex', () => {
               isAContainer: true,
               iri: 'foo2',
               shape: new Shape({
-                closed:true,
+                closed: true,
                 name: 'foo2',
                 positivePredicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
                 negativePredicates: [],
@@ -912,7 +912,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should return the correct filtered resource given an actor with shapeIntersection', ()=>{
+      it('should return the correct filtered resource given an actor with shapeIntersection', () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -920,7 +920,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
           restrictedToSolid: true,
-          shapeIntersection:true
+          shapeIntersection: true,
         });
         shapeIndex = new Map([
           [
@@ -974,7 +974,7 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo2',
-            }
+            },
           ],
           rejected: [
             {
@@ -984,7 +984,7 @@ describe('ActorExtractLinksShapeIndex', () => {
             {
               isAContainer: true,
               iri: 'foo1',
-            }
+            },
           ],
         };
 
