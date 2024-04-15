@@ -1,14 +1,17 @@
 {
-  "name": "@comunica/actor-rdf-resolve-hypermedia-links-traverse-replace-conditional",
+  "name": "@comunica/actor-extract-links-headers",
   "version": "0.4.0",
-  "description": "A traverse-replace-conditional rdf-resolve-hypermedia-links actor",
+  "description": "A headers extract-links actor",
   "lsd:module": true,
   "license": "MIT",
   "homepage": "https://comunica.dev/",
   "repository": {
     "type": "git",
     "url": "https://github.com/comunica/comunica.git",
-    "directory": "packages/actor-rdf-resolve-hypermedia-links-traverse-replace-conditional"
+    "directory": "packages/actor-extract-links-headers"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bugs": {
     "url": "https://github.com/comunica/comunica/issues"
@@ -16,15 +19,12 @@
   "keywords": [
     "comunica",
     "actor",
-    "rdf-resolve-hypermedia-links",
-    "traverse-replace-conditional"
+    "extract-links",
+    "headers"
   ],
   "sideEffects": false,
   "main": "lib/index.js",
   "typings": "lib/index",
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "components",
     "lib/**/*.d.ts",
@@ -37,6 +37,7 @@
     "build:components": "componentsjs-generator"
   },
   "dependencies": {
+    "@comunica/bus-extract-links": "^0.4.0",
     "@comunica/bus-rdf-resolve-hypermedia-links": "^3.0.1",
     "@comunica/core": "^3.0.1"
   }
