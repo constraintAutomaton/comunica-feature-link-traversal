@@ -3,7 +3,7 @@ import type {
   IActorRdfResolveHypermediaLinksQueueOutput,
 } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { ActorRdfResolveHypermediaLinksQueue } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
-import { KeyFilter } from '@comunica/context-entries-link-traversal';
+import { KeysFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorTest, Mediator, Actor } from '@comunica/core';
 import { ActionContextKey } from '@comunica/core';
 import type { FilterFunction } from '@comunica/types-link-traversal';
@@ -37,7 +37,7 @@ IActorRdfResolveHypermediaLinksQueueOutput
   public async run(action: IActionRdfResolveHypermediaLinksQueue): Promise<IActorRdfResolveHypermediaLinksQueueOutput> {
     const context = action.context.set(KEY_CONTEXT_WRAPPED, true);
     const { linkQueue } = await this.mediatorRdfResolveHypermediaLinksQueue.mediate({ ...action, context });
-    const filterMap = action.context.get(KeyFilter.filters);
+    const filterMap = action.context.get(KeysFilter.filters);
     if (filterMap === undefined) {
       throw new Error('filter map doesn\'t exist');
     }
