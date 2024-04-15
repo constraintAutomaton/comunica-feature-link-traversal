@@ -1,3 +1,4 @@
+import { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { LinkQueueFilterLinks } from '../lib/LinkQueueFilterLinks';
 
 describe('LinkQueueFilterLinks', () => {
@@ -117,7 +118,7 @@ describe('LinkQueueFilterLinks', () => {
       const links: any[] = [{ url: 'foo' }, { url: 'foo1' }, { url: 'foo2' }];
       const parent: any = { url: 'parent' };
       filterMap.set('foo', (iri) => {
-        return iri === 'foo1';
+        return iri.url === 'foo1';
       });
 
       for (const link of links) {
@@ -179,7 +180,7 @@ describe('LinkQueueFilterLinks', () => {
     it(`should return a link given the linked pop by the wrapped link queue is not undefined 
     and doesn't respect the filters and the next link respect the link`, () => {
       const anotherLink = { url: 'foo' };
-      filterMap.set('foo', iri => iri === aLink.url);
+      filterMap.set('foo', iri => iri.url === aLink.url);
 
       expect(linkQueue.push(anotherLink, parent)).toBe(true);
 
@@ -236,7 +237,7 @@ describe('LinkQueueFilterLinks', () => {
       }
       filterMap.set('0', () => false);
       filterMap.set('1', () => false);
-      filterMap.set('2', (iri: string) => iri === 'foo');
+      filterMap.set('2', (iri: ILink) => iri.url === 'foo');
 
       expect(linkQueue.getSize()).toBe(3);
 
@@ -387,8 +388,8 @@ describe('LinkQueueFilterLinks', () => {
       }
 
       filterMap.set('0', () => false);
-      filterMap.set('1', iri => iri === '5');
-      filterMap.set('2', iri => iri === '2');
+      filterMap.set('1', iri => iri.url === '5');
+      filterMap.set('2', iri => iri.url === '2');
 
       expect(linkQueue.getSize()).toBe(8);
     });

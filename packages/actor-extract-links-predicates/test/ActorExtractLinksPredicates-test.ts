@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { ActorExtractLinksPredicates } from '../lib/ActorExtractLinksPredicates';
@@ -35,10 +36,49 @@ describe('ActorExtractLinksTraversePredicates', () => {
         quad('ex:s2', 'http://www.w3.org/ns/ldp#contains', 'ex:r3'),
       ]);
     });
+    describe('test', () => {
+      it('should test if there is no deactivation map in the context', async() => {
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
+          .resolves.toBe(true);
+      });
 
-    it('should test ', async() => {
-      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
-        .resolves.toBe(true);
+      it('should test if the predicate actor is not in the deactivation map', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ 'foo', { actorParam: new Map(), urls: new Set<['']>(), urlPaterns: [ /.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+          .resolves.toBe(true);
+      });
+
+      it('should not test if the right url is targeted', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPaterns: [ /.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
+      });
+
+      it('should not test if the right url regex is targeted', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [
+              [ actor.name, { actorParam: new Map([[ 'predicates', new Set(predicateRegexes) ]]), urls: new Set([ 'ex:s' ]), urlPaterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
+            ],
+          ));
+        await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
+      });
+
+      it('should test if the right actor is targeted by with the wrong url', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPaterns: [ /ex:s\/.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+          .resolves.toBe(true);
+      });
     });
 
     it('should run on a stream and return all ldp:contains values', async() => {

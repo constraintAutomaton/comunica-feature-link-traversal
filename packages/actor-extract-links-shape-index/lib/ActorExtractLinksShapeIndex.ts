@@ -6,10 +6,10 @@ import type {
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import { KeysInitQuery } from '@comunica/context-entries';
-import { KeyFilter } from '@comunica/context-entries-link-traversal';
+import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
-import type { FilterFunction } from '@comunica/types-link-traversal';
+import type { FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
@@ -40,17 +40,22 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public static readonly SOLID_INSTANCE_CONTAINER = DF.namedNode('http://www.w3.org/ns/solid/terms#instanceContainer');
   public static readonly LDP_CONTAINS = DF.namedNode('http://www.w3.org/ns/ldp#contains');
   public static readonly STORAGE_DESCRIPTION = 'http://www.w3.org/ns/solid/terms#storageDescription';
+  public static readonly ADAPTATIVE_REACHABILITY_LABEL = 'reachability_criteria';
 
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   public readonly addIriFromContainerInLinkQueue: boolean;
   public readonly restrictedToSolid: boolean;
   private filters: Map<string, FilterFunction> = new Map();
+  private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
 
   private query?: Query = undefined;
+  private currentRootOfStructuredEnvironement?: string;
   private readonly shapeIndexHandled: Set<string> = new Set();
   private readonly cacheShapeIndexIri = true;
   private readonly shapeIntersection?: boolean;
   private readonly strongAlignment?: boolean;
+  private readonly regexRootStructuredEnvironement?: string;
+  private readonly reachabilityCriteriaToDeactivate?: IActorLinkExtractDescriptor[];
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
@@ -112,19 +117,31 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     // If there is no query the engine should not work anyways
     const query: Algebra.Operation = action.context.get(KeysInitQuery.query)!;
     // Can we add the IRI of the containers has filters?
-    let filters: undefined | Map<string, FilterFunction> = action.context.get(KeyFilter.filters);
+    let filters: undefined | Map<string, FilterFunction> = action.context.get(KeysFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
     if (filters === undefined || filters?.size === 0) {
       filters = new Map();
-      action.context = action.context.set(KeyFilter.filters, filters);
+      action.context = action.context.set(KeysFilter.filters, filters);
       this.shapeIndexHandled.clear();
       this.query = generateQuery(query);
+    }
+
+    const linkExtractorDeactivationMap: Map<string, IActorExtractDescription> | undefined =
+      action.context.get(KeysDeactivateLinkExtractor.deactivate);
+    if (linkExtractorDeactivationMap === undefined) {
+      action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
+    }
+    this.linkDeactivationMap = action.context.get(KeysDeactivateLinkExtractor.deactivate)!;
+
+    if (this.regexRootStructuredEnvironement !== undefined) {
+      const groups = new RegExp(this.regexRootStructuredEnvironement, 'u').exec(action.url);
+      this.currentRootOfStructuredEnvironement = Array.isArray(groups) ? groups[1] : undefined;
     }
 
     this.filters = filters;
     if (this.filters.size === 0) {
       // A placeholder to avoid flushing the state when the query has not being changed
-      this.filters.set('placeholder', /* istanbul ignore next */(_: string) => false);
+      this.filters.set('placeholder', /* istanbul ignore next */(_: ILink) => false);
     }
 
     const shapeIndexLocation = await this.discoverShapeIndexLocationFromTriples(action.metadata);
@@ -158,10 +175,18 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   /**
    * Get the current filter map of the engine
-   * @returns {Map<string, FilterFunction>} A hard copy of the filter map
+   * @returns {Map<string, FilterFunction>} A deep copy of the filter map
    */
   public getFilters(): Map<string, FilterFunction> {
     return new Map(this.filters);
+  }
+
+  /**
+   * Get the current map of the actor that should be deactivated
+   * @returns {Map<string, IActorExtractDescription>} A deep copy of the deactivation map
+   */
+  public getLinkDeactivatedMap(): Map<string, IActorExtractDescription> {
+    return new Map(this.linkDeactivationMap);
   }
 
   /**
@@ -188,21 +213,21 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public addRejectedEntryFilters(filteredResources: IFilteredIndexEntries): void {
     for (const indexEntry of filteredResources.rejected) {
       if (indexEntry.isAContainer) {
-        this.filters.set(indexEntry.iri, (iri: string) => {
-          if (iri === indexEntry.iri) {
+        this.filters.set(indexEntry.iri, (link: ILink) => {
+          if (link.url === indexEntry.iri) {
             return true;
           }
-          if (!iri.includes(indexEntry.iri)) {
+          if (!link.url.includes(indexEntry.iri)) {
             return false;
           }
 
           const shapeIndexURL = new URL(indexEntry.iri).pathname.split('/');
-          const linkqueueURL = new URL(iri).pathname.split('/');
+          const linkqueueURL = new URL(link.url).pathname.split('/');
           // We check if we are not deeper than the targeted containers
           return linkqueueURL.length === shapeIndexURL.length;
         });
       } else {
-        this.filters.set(indexEntry.iri, (iri: string) => iri === indexEntry.iri);
+        this.filters.set(indexEntry.iri, (link: ILink) => link.url === indexEntry.iri);
       }
     }
   }
@@ -231,7 +256,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [ ...links, ...iris ];
+        links = [...links, ...iris];
       }
     }
     return links;
@@ -252,7 +277,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
               links.push({
                 url: quad.object.value,
-                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }},
+                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name } },
               });
             }
           });
@@ -322,12 +347,42 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         },
       });
 
-      for (const [ shapeName, entry ] of shapeIndex) {
+      for (const [shapeName, entry] of shapeIndex) {
         if (resultsReport.unAlignedShapes.has(shapeName)) {
           resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
           resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         }
+      }
+
+      if (resultsReport.allSubjectGroupsHaveStrongAlignment &&
+        this.reachabilityCriteriaToDeactivate !== undefined &&
+        this.currentRootOfStructuredEnvironement !== undefined) {
+        for (const currentCriteria of this.reachabilityCriteriaToDeactivate) {
+          const currentIndex = this.linkDeactivationMap.get(currentCriteria.name);
+          if (currentIndex === undefined) {
+            this.linkDeactivationMap.set(currentCriteria.name, {
+              actorParam: currentCriteria.actorParam,
+              urlPatterns: [new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u')],
+              urls: new Set(),
+            });
+          } else {
+            currentIndex.urlPatterns.push(new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u'));
+          }
+
+        }
+        const reachabilityCriteriaLabels =
+          new Set(this.reachabilityCriteriaToDeactivate.map(criteria => criteria.name));
+        this.filters.set(`${this.currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
+          const metadata = link.metadata;
+          if (metadata === undefined) {
+            return false;
+          }
+          if (!reachabilityCriteriaLabels.has(metadata[PRODUCED_BY_ACTOR]?.name)) {
+            return false;
+          }
+          return new RegExp(`${this.currentRootOfStructuredEnvironement}/.*`, 'u').test(link.url);
+        });
       }
     }
 
@@ -343,7 +398,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
     return new Promise<IShapeIndex | Error>((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
-        .then(async(response) => {
+        .then(async (response) => {
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -358,7 +413,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           });
           // I don't see a simple alternative
           // eslint-disable-next-line ts/no-misused-promises
-          response.data.on('end', async() => {
+          response.data.on('end', async () => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -393,7 +448,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     ) {
       const entry = shapeIndexInformation.get(quad.subject.value);
       if (entry === undefined) {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
       } else {
         entry.target = { iri: quad.object.value, isAContainer };
       }
@@ -413,7 +468,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>, context: IActionContext): Promise<IShapeIndex> {
     const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [ _subject, shape_target ] of shapeIndexInformation) {
+    for (const [_subject, shape_target] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -454,13 +509,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
     return new Promise((resolve) => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async(response) => {
+      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async (response) => {
         const shape = await shapeFromQuads(response.data, iri);
         if (shape instanceof Error) {
           resolve(shape);
           return;
         }
-        resolve([ shape, iri ]);
+        resolve([shape, iri]);
       }, error => resolve(error));
     });
   }
@@ -509,6 +564,18 @@ export interface IActorExtractLinksShapeIndexArgs
    * Consider the strong alignment between the shape and the query.
    */
   strongAlignment?: boolean;
+
+  /**
+   * A regex for the root of the pod.
+   * exemple: "http(?s):\/\/.*\/pods\/\d*"
+   */
+  regexRootStructuredEnvironement?: string;
+
+  /**
+   * The reachability criteria to deactivate if the it the subset of the structure is known a priori
+   * Given the `strongAlignment` flag is activated
+   */
+  reachabilityCriteriaToDeactivate?: IActorLinkExtractDescriptor[];
 }
 
 /**
@@ -544,4 +611,10 @@ type IShapeIndexEntry = Readonly<{
   shape: IShape;
 }>;
 
-export const REACHABILITY_SHAPE_INDEX = 'cShapeIndex';
+/**
+ * A link extract actor descriptior
+ */
+interface IActorLinkExtractDescriptor {
+  name: string;
+  actorParam: Map<string, any>;
+}

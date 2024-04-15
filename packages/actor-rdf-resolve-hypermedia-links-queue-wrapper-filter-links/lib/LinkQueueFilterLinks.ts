@@ -22,7 +22,7 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
 
   public override push(link: ILink, parent: ILink): boolean {
     for (const filter of this.filterMap.values()) {
-      if (filter(link.url)) {
+      if (filter(link)) {
         return false;
       }
     }
@@ -46,7 +46,7 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
 
       let isAccepted = true;
       for (const filter of this.filterMap.values()) {
-        if (filter(nextLink.url)) {
+        if (filter(nextLink)) {
           isAccepted = false;
           break;
         }
@@ -85,7 +85,7 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
     const toDelete: ILink[] = [];
     for (const link of this.internalLinkSet) {
       for (const filter of this.filterMap.values()) {
-        if (filter(link.url)) {
+        if (filter(link)) {
           toDelete.push(link);
           break;
         }
@@ -108,7 +108,7 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
       return link;
     }
     for (const filter of this.filterMap.values()) {
-      if (filter(link.url)) {
+      if (filter(link)) {
         return undefined;
       }
     }

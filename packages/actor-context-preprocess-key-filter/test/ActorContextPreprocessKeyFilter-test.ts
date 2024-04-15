@@ -1,4 +1,4 @@
-import { KeyFilter } from '@comunica/context-entries-link-traversal';
+import { KeysFilter } from '@comunica/context-entries-link-traversal';
 import { Bus } from '@comunica/core';
 import { ActorContextPreprocessKeyFilter } from '../lib/ActorContextPreprocessKeyFilter';
 
@@ -50,7 +50,7 @@ describe('ActorContextPreprocessKeyFilter', () => {
 
         expect(action.context.get).toHaveBeenCalledTimes(1);
         expect(action.context.set).toHaveBeenCalledTimes(1);
-        expect(action.context.set).toHaveBeenLastCalledWith(KeyFilter.filters, new Map());
+        expect(action.context.set).toHaveBeenLastCalledWith(KeysFilter.filters, new Map());
         expect(resp).toStrictEqual({ context: 'foo', foo: 'bar' });
       });
     });

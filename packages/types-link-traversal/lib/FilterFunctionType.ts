@@ -1,1 +1,3 @@
-export type FilterFunction = (iri: string) => boolean;
+import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
+
+export type FilterFunction = (link: ILink) => boolean;

@@ -1,7 +1,6 @@
 import { ActionContextKey } from '@comunica/core';
 import type { IDataDestination } from '@comunica/types';
-import type { AnnotateSourcesType, FilterFunction } from '@comunica/types-link-traversal';
-import { IActorExtractDescription } from '@comunica/types-link-traversal';
+import type { AnnotateSourcesType, FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
 
 /**
  * When adding entries to this file, also add a shortcut for them in the contextKeyShortcuts TSDoc comment in
@@ -46,5 +45,7 @@ export const KeysDeactivateLinkExtractor = {
   /**
    * Deactivate a link extractor for links repecting a regex.
    */
-  deactivate: new ActionContextKey<Map<string,IActorExtractDescription>>('@comunica/bus-extract-links:deactivateLinkExtractor'),
-}
+  deactivate: new ActionContextKey<DeactivationMap>('@comunica/bus-extract-links:deactivateLinkExtractor'),
+};
+
+type DeactivationMap = Map<string, IActorExtractDescription>;
