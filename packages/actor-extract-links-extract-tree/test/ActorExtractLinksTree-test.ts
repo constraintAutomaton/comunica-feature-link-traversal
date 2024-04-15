@@ -1,5 +1,6 @@
 import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import type * as RDF from 'rdf-js';
 import { ActorExtractLinksTree } from '../lib/ActorExtractLinksTree';
@@ -56,7 +57,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
     });
 
     it('should return the links of a TREE with multiple relations', async() => {
@@ -80,7 +81,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
       const result = await actor.run(action);
 
       expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
+        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
       }) });
     });
 
@@ -99,7 +100,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
     });
 
     it('should return the links of a TREE with multiple relations combining blank nodes and named nodes', async() => {
@@ -122,7 +123,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
       const result = await actor.run(action);
 
       expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
+        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
       }) });
     });
 
@@ -152,7 +153,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -181,7 +182,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -213,7 +214,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -241,7 +242,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
       const result = await actor.run(action);
 
       expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
+        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
       }) });
     });
   });

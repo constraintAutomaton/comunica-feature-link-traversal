@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import { ActorExtractLinksQuadPattern } from '../lib/ActorExtractLinksQuadPattern';
@@ -90,7 +91,7 @@ describe('ActorExtractLinksQuadPattern', () => {
             { url: 'ex:o4' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -128,7 +129,7 @@ describe('ActorExtractLinksQuadPattern', () => {
             { url: 'ex:s4' },
             { url: 'ex:o4' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: true }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: true }}};
           }),
         });
     });

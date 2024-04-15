@@ -10,6 +10,7 @@ import { KeyFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
   generateQuery,
@@ -123,7 +124,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     this.filters = filters;
     if (this.filters.size === 0) {
       // A placeholder to avoid flushing the state when the query has not being changed
-      this.filters.set('placeholder', /* istanbul ignore next */ (_: string) => false);
+      this.filters.set('placeholder', /* istanbul ignore next */(_: string) => false);
     }
 
     const shapeIndexLocation = await this.discoverShapeIndexLocationFromTriples(action.metadata);
@@ -249,7 +250,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         .then((response) => {
           response.data.on('data', (quad: RDF.Quad) => {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
-              links.push({ url: quad.object.value });
+              links.push({
+                url: quad.object.value,
+                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }},
+              });
             }
           });
 

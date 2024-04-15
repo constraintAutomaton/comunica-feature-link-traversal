@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import { BindingsFactory } from '@comunica/bindings-factory';
 import { KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import arrayifyStream from 'arrayify-stream';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
@@ -193,7 +194,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -237,7 +238,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -276,7 +277,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -331,7 +332,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -382,7 +383,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -408,7 +409,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -426,7 +427,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -456,7 +457,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });
@@ -475,7 +476,7 @@ describe('ActorExtractLinksContentPolicies', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
             };
           }),
         });
@@ -507,7 +508,7 @@ describe('ActorExtractLinksContentPolicies', () => {
         ].map((link) => {
           return {
             ...link,
-            metadata: { producedByActor: { name: actor.name, traverseConditional: actor.traverseConditional }},
+            metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, traverseConditional: actor.traverseConditional }},
           };
         }),
       });

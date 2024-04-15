@@ -9,6 +9,7 @@ import { KeysQueryOperation } from '@comunica/context-entries';
 import type { IActorArgs, IActorTest } from '@comunica/core';
 import { ActionContext, ActionContextKey } from '@comunica/core';
 import type { Bindings, IActionContext } from '@comunica/types';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { storeStream } from 'rdf-store-stream';
 import { matchPatternComplete } from 'rdf-terms';
@@ -130,7 +131,7 @@ export class ActorExtractLinksContentPolicies extends ActorExtractLinks
             const link: ILink = {
               url: term.value,
               transform,
-              metadata: { producedByActor: { name: this.name, traverseConditional: this.traverseConditional }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: this.name, traverseConditional: this.traverseConditional }},
             };
 
             // Mark in the context if the linked document's policies should be considered

@@ -1,6 +1,7 @@
 import { KeysInitQuery } from '@comunica/context-entries';
 import { KeyFilter } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
@@ -1213,7 +1214,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
         const expectedIris = iris.map((value) => {
-          return { url: value };
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves

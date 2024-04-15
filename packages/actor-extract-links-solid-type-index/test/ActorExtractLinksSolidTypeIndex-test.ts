@@ -4,6 +4,7 @@ import { BindingsFactory } from '@comunica/bindings-factory';
 import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
 import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
@@ -149,7 +150,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: false, inference: false }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: false, inference: false }},
             };
           }),
         });
@@ -225,7 +226,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file1',
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             },
           ],
         });
@@ -328,7 +329,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             };
           }),
         });
@@ -361,7 +362,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file1',
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             },
           ],
         });
@@ -410,7 +411,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file2',
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             },
           ],
         });
@@ -469,7 +470,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             };
           }),
         });
@@ -524,7 +525,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             };
           }),
         });
@@ -575,7 +576,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           links: [
             {
               url: 'ex:file1',
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: true }},
             },
           ],
         });
@@ -642,7 +643,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: false }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: false }},
             };
           }),
         });
@@ -680,7 +681,7 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ].map((link) => {
             return {
               ...link,
-              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: false }},
+              metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyMatchingTypes: true, inference: false }},
             };
           }),
         });
