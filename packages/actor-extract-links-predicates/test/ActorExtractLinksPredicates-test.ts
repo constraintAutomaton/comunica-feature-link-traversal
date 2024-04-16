@@ -45,7 +45,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
       it('should test if the predicate actor is not in the deactivation map', async() => {
         const context = new ActionContext()
           .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ 'foo', { actorParam: new Map(), urls: new Set<['']>(), urlPaterns: [ /.*/u ]}]],
+            [[ 'foo', { actorParam: new Map(), urls: new Set(['']), urlPatterns: [ /.*/u ]}]],
           ));
         await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
           .resolves.toBe(true);
@@ -54,7 +54,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
       it('should not test if the right url is targeted', async() => {
         const context = new ActionContext()
           .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPaterns: [ /.*/u ]}]],
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
           ));
         await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
           .rejects.toThrow('the extractor has been deactivated');
@@ -64,7 +64,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         const context = new ActionContext()
           .set(KeysDeactivateLinkExtractor.deactivate, new Map(
             [
-              [ actor.name, { actorParam: new Map([[ 'predicates', new Set(predicateRegexes) ]]), urls: new Set([ 'ex:s' ]), urlPaterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
+              [ actor.name, { actorParam: new Map([[ 'predicates', new Set(predicateRegexes) ]]), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
             ],
           ));
         await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
@@ -74,7 +74,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
       it('should test if the right actor is targeted by with the wrong url', async() => {
         const context = new ActionContext()
           .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPaterns: [ /ex:s\/.*/u ]}]],
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]}]],
           ));
         await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
           .resolves.toBe(true);
