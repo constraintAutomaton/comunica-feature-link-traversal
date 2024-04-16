@@ -45,7 +45,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
       it('should test if the predicate actor is not in the deactivation map', async() => {
         const context = new ActionContext()
           .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ 'foo', { actorParam: new Map(), urls: new Set(['']), urlPatterns: [ /.*/u ]}]],
+            [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
           ));
         await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
           .resolves.toBe(true);

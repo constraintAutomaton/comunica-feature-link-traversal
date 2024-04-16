@@ -1,4 +1,4 @@
-import { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
+import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { LinkQueueFilterLinks } from '../lib/LinkQueueFilterLinks';
 
 describe('LinkQueueFilterLinks', () => {

@@ -29,6 +29,8 @@ const DF = new DataFactory<RDF.BaseQuad>();
 
 /**
  * A comunica Shape Index Extract Links Actor.
+ * @todo get the root of the storage using the storage description instead of a regex.
+ * A regex approach is used because SolidBench consider that the whole benchmark is one pod
  */
 export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public static readonly IRI_SHAPETREE = 'http://www.w3.org/ns/shapetrees#ShapeTreeLocator';
@@ -133,10 +135,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     }
     this.linkDeactivationMap = action.context.get(KeysDeactivateLinkExtractor.deactivate)!;
 
-    if (this.regexRootStructuredEnvironement !== undefined) {
-      const groups = new RegExp(this.regexRootStructuredEnvironement, 'u').exec(action.url);
-      this.currentRootOfStructuredEnvironement = Array.isArray(groups) ? groups[1] : undefined;
-    }
+    this.setCurrentRootOfStructedEnvironement(action.url);
 
     this.filters = filters;
     if (this.filters.size === 0) {
@@ -204,6 +203,23 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }
 
   /**
+   * Set the root of the current structured environement
+   * @param {string} url the current url
+   * @todo for the time being we consider that the root is described by a regex but in the Solid
+   * specification it is possible to get it from the http header via the `rel=type` `http://www.w3.org/ns/pim/space#Storage`
+   * and dereferencing the links. the problem is that in Solidbench the whole benchmark is in one pod.
+   * https://solidproject.org/TR/protocol#storage-resource
+   */
+  public setCurrentRootOfStructedEnvironement(url: string): void {
+    if (this.regexRootStructuredEnvironement === undefined) {
+      this.currentRootOfStructuredEnvironement = undefined;
+    } else {
+      const groups = new RegExp(this.regexRootStructuredEnvironement, 'u').exec(url);
+      this.currentRootOfStructuredEnvironement = Array.isArray(groups) ? groups[0] : undefined;
+    }
+  }
+
+  /**
    * Generate filter function from the rejected entries of the shape index.
    * When it is a resource that the filter simply valide if the resource iri is the
    * same as the one pass, if it is a container than it validate if the iri is in the
@@ -256,7 +272,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const iris of irisFromContainers) {
       if (!(iris instanceof Error)) {
-        links = [...links, ...iris];
+        links = [ ...links, ...iris ];
       }
     }
     return links;
@@ -277,7 +293,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
               links.push({
                 url: quad.object.value,
-                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name } },
+                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }},
               });
             }
           });
@@ -347,7 +363,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         },
       });
 
-      for (const [shapeName, entry] of shapeIndex) {
+      for (const [ shapeName, entry ] of shapeIndex) {
         if (resultsReport.unAlignedShapes.has(shapeName)) {
           resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
@@ -363,16 +379,17 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           if (currentIndex === undefined) {
             this.linkDeactivationMap.set(currentCriteria.name, {
               actorParam: currentCriteria.actorParam,
-              urlPatterns: [new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u')],
+              urlPatterns: [ new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u') ],
               urls: new Set(),
             });
           } else {
             currentIndex.urlPatterns.push(new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u'));
           }
-
         }
         const reachabilityCriteriaLabels =
           new Set(this.reachabilityCriteriaToDeactivate.map(criteria => criteria.name));
+        const rootStructuredEnvironement = this.currentRootOfStructuredEnvironement;
+
         this.filters.set(`${this.currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
           const metadata = link.metadata;
           if (metadata === undefined) {
@@ -381,7 +398,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           if (!reachabilityCriteriaLabels.has(metadata[PRODUCED_BY_ACTOR]?.name)) {
             return false;
           }
-          return new RegExp(`${this.currentRootOfStructuredEnvironement}/.*`, 'u').test(link.url);
+          const regexResp = new RegExp(`${rootStructuredEnvironement}/.*`, 'u').test(link.url);
+          return regexResp;
         });
       }
     }
@@ -398,7 +416,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): Promise<IShapeIndex | Error> {
     return new Promise<IShapeIndex | Error>((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
-        .then(async (response) => {
+        .then(async(response) => {
           const shapeIndexInformation: Map<string, {
             shape?: string;
             target?: IShapeIndexTarget;
@@ -413,7 +431,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           });
           // I don't see a simple alternative
           // eslint-disable-next-line ts/no-misused-promises
-          response.data.on('end', async () => {
+          response.data.on('end', async() => {
             const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
             resolve(shapeIndex);
           });
@@ -448,7 +466,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     ) {
       const entry = shapeIndexInformation.get(quad.subject.value);
       if (entry === undefined) {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer } });
+        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
       } else {
         entry.target = { iri: quad.object.value, isAContainer };
       }
@@ -468,7 +486,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   }>, context: IActionContext): Promise<IShapeIndex> {
     const promises: Promise<[IShape, string] | Error>[] = [];
     const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [_subject, shape_target] of shapeIndexInformation) {
+    for (const [ _subject, shape_target ] of shapeIndexInformation) {
       if (shape_target.shape !== undefined && shape_target.target !== undefined) {
         promises.push(this.getShapeFromIRI(shape_target.shape, context));
         iriShapeIndex.set(shape_target.shape, shape_target.target);
@@ -509,13 +527,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
     return new Promise((resolve) => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async (response) => {
+      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async(response) => {
         const shape = await shapeFromQuads(response.data, iri);
         if (shape instanceof Error) {
           resolve(shape);
           return;
         }
-        resolve([shape, iri]);
+        resolve([ shape, iri ]);
       }, error => resolve(error));
     });
   }
