@@ -1,6 +1,6 @@
-import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
+import { KeysDeactivateLinkExtractor, KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import type * as RDF from 'rdf-js';
 import { ActorExtractLinksTree } from '../lib/ActorExtractLinksTree';
@@ -80,9 +80,11 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
 
     it('should return the links of a TREE with one complex relation', async() => {
@@ -122,9 +124,11 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
 
     it(`should return the links of a TREE with when there is a root type`, async() => {
@@ -241,41 +245,109 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
   });
-  describe('The ActorExtractLinksExtractLinksTree test method', () => {
-    let actor: ActorExtractLinksTree;
-    const treeUrl = 'ex:s';
 
-    beforeEach(() => {
-      actor = new ActorExtractLinksTree({ name: 'actor', bus });
+  describe('test', () => {
+    bus = new Bus({ name: 'bus' });
+    const actor: ActorExtractLinksTree = new ActorExtractLinksTree({ name: 'actor', bus });
+    const input = undefined;
+
+    it('should test if there is no deactivation map in the context', async() => {
+      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
+        .resolves.toBe(true);
     });
 
-    it('should test when giving a TREE', async() => {
-      const input = stream([
-        DF.quad(DF.namedNode(treeUrl), DF.namedNode('ex:p'), DF.namedNode('ex:o'), DF.namedNode('ex:gx')),
-        DF.quad(DF.namedNode(treeUrl), DF.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), DF.namedNode('https://w3id.org/tree#node'), DF.namedNode('ex:gx')),
-      ]);
-      const action = { url: '', metadata: input, requestTime: 0, context: new ActionContext() };
-
-      const result = await actor.test(action);
-
-      expect(result).toBe(true);
+    it('should test if the predicate actor is not in the deactivation map', async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
+        ));
+      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+        .resolves.toBe(true);
     });
 
-    it('should test when not given a TREE', async() => {
-      const input = stream([
-        DF.quad(DF.namedNode(treeUrl), DF.namedNode('ex:p'), DF.namedNode('ex:o'), DF.namedNode('ex:gx')),
-        DF.quad(DF.namedNode(treeUrl), DF.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), DF.namedNode('root:node'), DF.namedNode('ex:gx')),
-      ]);
-      const action = { url: '', metadata: input, requestTime: 0, context: new ActionContext() };
+    it('should not test if the right url is targeted', async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
+        ));
+      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+        .rejects.toThrow('the extractor has been deactivated');
+    });
 
-      const result = await actor.test(action);
+    it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [
+            [
+              EVERY_REACHABILITY_CRITERIA,
+              { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
+            ],
+          ],
+        ));
+      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+        .rejects.toThrow('the extractor has been deactivated');
+    });
 
-      expect(result).toBe(true);
+    it('should not test if the right url regex is targeted', async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [
+            [
+              actor.name,
+              { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
+            ],
+          ],
+        ));
+      await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+        .rejects.toThrow('the extractor has been deactivated');
+    });
+
+    it(`should not test if the right url regex is targeted 
+    given all the reachability criteria are targeted`, async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [
+            [ EVERY_REACHABILITY_CRITERIA, { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
+          ],
+        ));
+      await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+        .rejects.toThrow('the extractor has been deactivated');
+    });
+
+    it('should test if the right actor is targeted by with the wrong url', async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [
+            [
+              actor.name,
+              { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+            ],
+          ],
+        ));
+      await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+        .resolves.toBe(true);
+    });
+
+    it(`should test if the right actor is targeted by with the wrong url
+     given all the reachability criteria are targeted`, async() => {
+      const context = new ActionContext()
+        .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+          [
+            [
+              EVERY_REACHABILITY_CRITERIA,
+              { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+            ],
+          ],
+        ));
+      await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+        .resolves.toBe(true);
     });
   });
 });

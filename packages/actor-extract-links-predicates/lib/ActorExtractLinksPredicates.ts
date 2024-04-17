@@ -1,8 +1,6 @@
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorTest } from '@comunica/core';
-import type { IActorExtractDescription } from '@comunica/types-link-traversal';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 /**
@@ -18,37 +16,6 @@ export class ActorExtractLinksPredicates extends ActorExtractLinks {
 
     this.stringPredicates = args.predicateRegexes;
     this.predicates = args.predicateRegexes.map(stringRegex => new RegExp(stringRegex, 'u'));
-  }
-
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    return new Promise((resolve, reject) => {
-      const deactivationMap: Map<string, IActorExtractDescription> | undefined =
-        action.context.get(KeysDeactivateLinkExtractor.deactivate);
-      if (deactivationMap === undefined) {
-        resolve(true);
-        return;
-      }
-
-      const deactivationInformation = deactivationMap.get(this.name);
-      if (deactivationInformation === undefined) {
-        resolve(true);
-        return;
-      }
-
-      if (deactivationInformation.urls.has(action.url)) {
-        reject(new Error('the extractor has been deactivated'));
-        return;
-      }
-
-      for (const regex of deactivationInformation.urlPatterns) {
-        if (regex.test(action.url)) {
-          reject(new Error('the extractor has been deactivated'));
-          return;
-        }
-      }
-
-      resolve(true);
-    });
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

@@ -1,7 +1,7 @@
 import { KeysInitQuery } from '@comunica/context-entries';
 import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
@@ -28,7 +28,13 @@ describe('ActorExtractLinksShapeIndex', () => {
     const cacheShapeIndexIri = false;
 
     describe('test', () => {
+      let context = new ActionContext({
+        [KeysInitQuery.query.name]: '',
+      });
       beforeEach(() => {
+        context = new ActionContext({
+          [KeysInitQuery.query.name]: '',
+        });
         bus = new Bus({ name: 'bus' });
 
         actor = new ActorExtractLinksShapeIndex({
@@ -42,23 +48,17 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it('should not test if the context is empty', async() => {
-        const context = new ActionContext({});
+        context = new ActionContext({});
         await expect(actor.test(<any>{ context })).rejects
           .toThrow('Actor actor can only work in the context of a query.');
       });
 
       it('should not test if there is no header', async() => {
-        const context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         await expect(actor.test(<any>{ context })).rejects
           .toThrow('There should be an header for the resource to be in a Solid pods');
       });
 
       it('should test header information are missing but the actor is not restricted to Solid', async() => {
-        const context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         const headers = new Headers();
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
@@ -73,9 +73,6 @@ describe('ActorExtractLinksShapeIndex', () => {
 
       it('should not test if there is an empty header', async() => {
         const headers = new Headers();
-        const context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         await expect(actor.test(<any>{
           context,
           headers,
@@ -91,9 +88,6 @@ describe('ActorExtractLinksShapeIndex', () => {
             [ 'foo', 'boo' ],
           ],
         );
-        const context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         await expect(actor.test(<any>{
           context,
           headers,
@@ -108,10 +102,120 @@ describe('ActorExtractLinksShapeIndex', () => {
             [ 'Link', `http://ex.com/bar ;rel=${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}` ],
           ],
         );
-        const context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         await expect(actor.test(<any>{ context, headers })).resolves.toBe(true);
+      });
+      describe('deactivation', () => {
+        const input = undefined;
+
+        beforeEach(() => {
+          context = new ActionContext({
+            [KeysInitQuery.query.name]: '',
+          });
+          bus = new Bus({ name: 'bus' });
+
+          actor = new ActorExtractLinksShapeIndex({
+            name: 'actor',
+            bus,
+            mediatorDereferenceRdf,
+            addIriFromContainerInLinkQueue,
+            cacheShapeIndexIri,
+            restrictedToSolid: false,
+          });
+        });
+        it('should test if there is no deactivation map in the context', async() => {
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it('should test if the predicate actor is not in the deactivation map', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it('should not test if the right url is targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should not test if the right url regex is targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  actor.name,
+                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it(`should not test if the right url regex is targeted 
+        given all the reachability criteria are targeted`, async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should test if the right actor is targeted by with the wrong url', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  actor.name,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it(`should test if the right actor is targeted by with the wrong url 
+        given all the reachability criteria are targeted`, async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
       });
     });
 
@@ -1006,10 +1110,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           shapeIntersection: true,
           strongAlignment: true,
           regexRootStructuredEnvironement: 'http://.*/pods/d*',
-          reachabilityCriteriaToDeactivate: [
-            { name: 'bar', actorParam: new Map() },
-            { name: 'foo', actorParam: new Map() },
-          ],
+          deactivateReachabilityOnAprioriSearchDomainDetection: true,
         });
 
         shapeIndex = new Map([
@@ -1083,8 +1184,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           rejected: [],
         };
         const expectedDeactivationMap = new Map([
-          [ 'bar', { actorParam: new Map(), urls: new Set(), urlPatterns: [ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]}],
-          [ 'foo', { actorParam: new Map(), urls: new Set(), urlPatterns: [ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]}],
+          [
+            EVERY_REACHABILITY_CRITERIA,
+            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]) },
+          ],
         ]);
 
         const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
@@ -1100,7 +1203,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           [{ url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, true ],
 
           [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, false ],
+          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
         ];
 
         for (const [ link, expected ] of testLinks) {
@@ -1122,10 +1225,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           shapeIntersection: true,
           strongAlignment: true,
           regexRootStructuredEnvironement: 'http://.*/pods/d*',
-          reachabilityCriteriaToDeactivate: [
-            { name: 'bar', actorParam: new Map() },
-            { name: 'foo', actorParam: new Map() },
-          ],
+          deactivateReachabilityOnAprioriSearchDomainDetection: true,
         });
 
         shapeIndex = new Map([
@@ -1199,8 +1299,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           rejected: [],
         };
         const expectedDeactivationMap = new Map([
-          [ 'bar', { actorParam: new Map(), urls: new Set(), urlPatterns: [ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]}],
-          [ 'foo', { actorParam: new Map(), urls: new Set(), urlPatterns: [ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]}],
+          [
+            EVERY_REACHABILITY_CRITERIA,
+            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]) },
+          ],
         ]);
 
         const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
@@ -1216,7 +1318,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           [{ url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, true ],
 
           [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, false ],
+          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
         ];
 
         for (const [ link, expected ] of reTestLinks) {
@@ -1232,21 +1334,13 @@ describe('ActorExtractLinksShapeIndex', () => {
         const reResp = actor.filterResourcesFromShapeIndex(shapeIndex);
 
         const reExpectedDeactivationMap = new Map([
-          [ 'bar', {
+          [ EVERY_REACHABILITY_CRITERIA, {
             actorParam: new Map(),
             urls: new Set(),
-            urlPatterns: [
+            urlPatterns: new Set([
               new RegExp(`${currentRootOfStructuredEnvironement}*`, 'u'),
               new RegExp(`${reCurrentRootOfStructuredEnvironement}*`, 'u'),
-            ],
-          }],
-          [ 'foo', {
-            actorParam: new Map(),
-            urls: new Set(),
-            urlPatterns: [
-              new RegExp(`${currentRootOfStructuredEnvironement}*`, 'u'),
-              new RegExp(`${reCurrentRootOfStructuredEnvironement}*`, 'u'),
-            ],
+            ]),
           }],
         ]);
 
@@ -1301,7 +1395,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           [
             { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
               [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
@@ -1325,8 +1419,13 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         for (const [ link, expected ] of testLinks) {
           for (const [ key, filterFunction ] of actor.getFilters()) {
-            const filtered = filterFunction(link);
+            let filtered = filterFunction(link);
             expect(filtered).toBe(expected[key]);
+            if (link.metadata !== undefined) {
+              const linkProducedByShapeIndex = { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+              filtered = filterFunction(linkProducedByShapeIndex);
+            }
+            expect(filtered).toBe(false);
           }
         }
       });

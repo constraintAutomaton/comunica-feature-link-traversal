@@ -32,14 +32,22 @@ export class ActorExtractLinksSolidTypeIndex extends ActorExtractLinks {
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
   }
 
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    if (!action.context.get(KeysInitQuery.query)) {
-      throw new Error(`Actor ${this.name} can only work in the context of a query.`);
-    }
-    if (!action.context.get(KeysQueryOperation.operation)) {
-      throw new Error(`Actor ${this.name} can only work in the context of a query operation.`);
-    }
-    return true;
+  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
+    return new Promise((resolve, reject) => {
+      super.test(action).then(() => {
+        if (!action.context.get(KeysInitQuery.query)) {
+          reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
+          return;
+        }
+        if (!action.context.get(KeysQueryOperation.operation)) {
+          reject(new Error(`Actor ${this.name} can only work in the context of a query operation.`));
+          return;
+        }
+        resolve(true);
+      }, (reason: Error) => {
+        reject(reason);
+      });
+    });
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

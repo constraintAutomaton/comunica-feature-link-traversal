@@ -10,7 +10,7 @@ import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entri
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { PRODUCED_BY_ACTOR, EVERY_REACHABILITY_CRITERIA } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
   generateQuery,
@@ -51,16 +51,22 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
 
   private query?: Query = undefined;
-  private currentRootOfStructuredEnvironement?: string;
-  private readonly shapeIndexHandled: Set<string> = new Set();
+
   private readonly cacheShapeIndexIri = true;
+  private readonly deactivateReachabilityOnAprioriSearchDomainDetection: boolean;
+  private readonly shapeIndexHandled: Set<string> = new Set();
+
+  private currentRootOfStructuredEnvironement?: string;
+
   private readonly shapeIntersection?: boolean;
   private readonly strongAlignment?: boolean;
+
   private readonly regexRootStructuredEnvironement?: string;
-  private readonly reachabilityCriteriaToDeactivate?: IActorLinkExtractDescriptor[];
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
+    this.deactivateReachabilityOnAprioriSearchDomainDetection =
+      args.deactivateReachabilityOnAprioriSearchDomainDetection ?? false;
   }
 
   /**
@@ -71,40 +77,44 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IActionExtractLinks} action - the action
    * @returns {Promise<IActorTest>} Whether the actor should be run
    */
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
+  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
     return new Promise((resolve, reject) => {
-      if (action.context.get(KeysInitQuery.query) === undefined) {
-        reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
-        return;
-      }
+      super.test(action).then(() => {
+        if (action.context.get(KeysInitQuery.query) === undefined) {
+          reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
+          return;
+        }
 
-      if (!this.restrictedToSolid) {
-        resolve(true);
-        return;
-      }
-
-      if (action.headers === undefined) {
-        reject(new Error('There should be an header for the resource to be in a Solid pods'));
-        return;
-      }
-
-      const links = action.headers.get('Link');
-      if (!links) {
-        reject(new Error('There should be a link field inside the header for the resource to be in a Solid pods'));
-        return;
-      }
-
-      const entries = links.split(',')
-        .map(value => value.trimStart());
-
-      for (const entry of entries) {
-        if (entry.includes(ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION)) {
+        if (!this.restrictedToSolid) {
           resolve(true);
           return;
         }
-      }
 
-      reject(new Error(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`));
+        if (action.headers === undefined) {
+          reject(new Error('There should be an header for the resource to be in a Solid pods'));
+          return;
+        }
+
+        const links = action.headers.get('Link');
+        if (!links) {
+          reject(new Error('There should be a link field inside the header for the resource to be in a Solid pods'));
+          return;
+        }
+
+        const entries = links.split(',')
+          .map(value => value.trimStart());
+
+        for (const entry of entries) {
+          if (entry.includes(ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION)) {
+            resolve(true);
+            return;
+          }
+        }
+
+        reject(new Error(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`));
+      }, (reason: Error) => {
+        reject(reason);
+      });
     });
   }
 
@@ -372,22 +382,19 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       }
 
       if (resultsReport.allSubjectGroupsHaveStrongAlignment &&
-        this.reachabilityCriteriaToDeactivate !== undefined &&
+        this.deactivateReachabilityOnAprioriSearchDomainDetection &&
         this.currentRootOfStructuredEnvironement !== undefined) {
-        for (const currentCriteria of this.reachabilityCriteriaToDeactivate) {
-          const currentIndex = this.linkDeactivationMap.get(currentCriteria.name);
-          if (currentIndex === undefined) {
-            this.linkDeactivationMap.set(currentCriteria.name, {
-              actorParam: currentCriteria.actorParam,
-              urlPatterns: [ new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u') ],
-              urls: new Set(),
-            });
-          } else {
-            currentIndex.urlPatterns.push(new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u'));
-          }
+        const currentIndex = this.linkDeactivationMap.get(EVERY_REACHABILITY_CRITERIA);
+        if (currentIndex === undefined) {
+          this.linkDeactivationMap.set(EVERY_REACHABILITY_CRITERIA, {
+            actorParam: new Map(),
+            urlPatterns: new Set([ new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u') ]),
+            urls: new Set(),
+          });
+        } else {
+          currentIndex.urlPatterns.add(new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u'));
         }
-        const reachabilityCriteriaLabels =
-          new Set(this.reachabilityCriteriaToDeactivate.map(criteria => criteria.name));
+
         const rootStructuredEnvironement = this.currentRootOfStructuredEnvironement;
 
         this.filters.set(`${this.currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
@@ -395,7 +402,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           if (metadata === undefined) {
             return false;
           }
-          if (!reachabilityCriteriaLabels.has(metadata[PRODUCED_BY_ACTOR]?.name)) {
+          if (metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
             return false;
           }
           const regexResp = new RegExp(`${rootStructuredEnvironement}/.*`, 'u').test(link.url);
@@ -588,12 +595,11 @@ export interface IActorExtractLinksShapeIndexArgs
    * exemple: "http(?s):\/\/.*\/pods\/\d*"
    */
   regexRootStructuredEnvironement?: string;
-
   /**
-   * The reachability criteria to deactivate if the it the subset of the structure is known a priori
-   * Given the `strongAlignment` flag is activated
+   * Deactivate reachability if it is possible to determine a priori
+   * which subset of the structured environment are required for the query execution
    */
-  reachabilityCriteriaToDeactivate?: IActorLinkExtractDescriptor[];
+  deactivateReachabilityOnAprioriSearchDomainDetection?: boolean;
 }
 
 /**
@@ -628,11 +634,3 @@ type IShapeIndexEntry = Readonly<{
   iri: string;
   shape: IShape;
 }>;
-
-/**
- * A link extract actor descriptior
- */
-interface IActorLinkExtractDescriptor {
-  name: string;
-  actorParam: Map<string, any>;
-}

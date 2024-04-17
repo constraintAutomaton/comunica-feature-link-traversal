@@ -25,11 +25,18 @@ export class ActorExtractLinksQuadPattern extends ActorExtractLinks {
     return currentQueryOperation;
   }
 
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    if (!ActorExtractLinksQuadPattern.getCurrentQuadPattern(action.context)) {
-      throw new Error(`Actor ${this.name} can only work in the context of a quad pattern.`);
-    }
-    return true;
+  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
+    return new Promise((resolve, reject) => {
+      super.test(action).then(() => {
+        if (!ActorExtractLinksQuadPattern.getCurrentQuadPattern(action.context)) {
+          reject(new Error(`Actor ${this.name} can only work in the context of a quad pattern.`));
+          return;
+        }
+        resolve(true);
+      }, (reason: Error) => {
+        reject(reason);
+      });
+    });
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
