@@ -33,15 +33,28 @@ const DF = new DataFactory<RDF.BaseQuad>();
  * A regex approach is used because SolidBench consider that the whole benchmark is one pod
  */
 export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
-  public static readonly IRI_SHAPETREE = 'http://www.w3.org/ns/shapetrees#ShapeTreeLocator';
-  public static readonly IRI_SHAPETREE_OLD = 'http://shapetrees.org/#ShapeTree';
-  public static readonly SHAPE_TREE_IN_SOLID_POD_PATH = 'shapeIndex';
-  public static readonly SHAPE_TREE_LOCATOR = DF.namedNode('http://www.w3.org/ns/shapetrees#ShapeTreeLocator');
-  public static readonly SHAPE_TREE_SHAPE = DF.namedNode('http://www.w3.org/ns/shapetrees#shape');
-  public static readonly SOLID_INSTANCE = DF.namedNode('http://www.w3.org/ns/solid/terms#instance');
-  public static readonly SOLID_INSTANCE_CONTAINER = DF.namedNode('http://www.w3.org/ns/solid/terms#instanceContainer');
-  public static readonly LDP_CONTAINS = DF.namedNode('http://www.w3.org/ns/ldp#contains');
+  public static readonly RDF_TYPE_NODE = DF.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
+
+  public static readonly RDF_TRUE_NODE = DF.literal('true', DF.namedNode('http://www.w3.org/2001/XMLSchema#boolean'));
+  public static readonly RDF_FALSE_NODE = DF.literal('false', DF.namedNode('http://www.w3.org/2001/XMLSchema#boolean'));
+
+  public static readonly SHAPE_INDEX_PREFIX = 'https://shapeIndex.com#';
+
+  public static readonly SHAPE_INDEX_LOCATOR_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}shapeIndexLocation`);
+
+  public static readonly SHAPE_INDEX_CLASS_DEFINITION_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}ShapeIndex`);
+  public static readonly SHAPE_INDEX_DOMAIN_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}domain`);
+  public static readonly SHAPE_INDEX_ENTRY_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}entry`);
+  public static readonly SHAPE_INDEX_BIND_BY_SHAPE_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}bindByShape`);
+  public static readonly SHAPE_INDEX_IS_COMPLETE_NODE = DF.namedNode(`${this.SHAPE_INDEX_PREFIX}isComplete`);
+
+  public static readonly SOLID_INSTANCE_NODE = DF.namedNode('http://www.w3.org/ns/solid/terms#instance');
+  public static readonly SOLID_INSTANCE_CONTAINER_NODE = DF.namedNode('http://www.w3.org/ns/solid/terms#instanceContainer');
+
+  public static readonly LDP_CONTAINS_NODE = DF.namedNode('http://www.w3.org/ns/ldp#contains');
+
   public static readonly STORAGE_DESCRIPTION = 'http://www.w3.org/ns/solid/terms#storageDescription';
+
   public static readonly ADAPTATIVE_REACHABILITY_LABEL = 'reachability_criteria';
 
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
@@ -56,12 +69,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   private readonly deactivateReachabilityOnAprioriSearchDomainDetection: boolean;
   private readonly shapeIndexHandled: Set<string> = new Set();
 
-  private currentRootOfStructuredEnvironement?: string;
-
   private readonly shapeIntersection?: boolean;
   private readonly strongAlignment?: boolean;
-
-  private readonly regexRootStructuredEnvironement?: string;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
@@ -131,6 +140,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeysFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
+    // We also reset the cashing of shape index handled
     if (filters === undefined || filters?.size === 0) {
       filters = new Map();
       action.context = action.context.set(KeysFilter.filters, filters);
@@ -144,8 +154,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
     }
     this.linkDeactivationMap = action.context.get(KeysDeactivateLinkExtractor.deactivate)!;
-
-    this.setCurrentRootOfStructedEnvironement(action.url);
 
     this.filters = filters;
     if (this.filters.size === 0) {
@@ -210,23 +218,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       return undefined;
     }
     return new Map(this.query);
-  }
-
-  /**
-   * Set the root of the current structured environement
-   * @param {string} url the current url
-   * @todo for the time being we consider that the root is described by a regex but in the Solid
-   * specification it is possible to get it from the http header via the `rel=type` `http://www.w3.org/ns/pim/space#Storage`
-   * and dereferencing the links. the problem is that in Solidbench the whole benchmark is in one pod.
-   * https://solidproject.org/TR/protocol#storage-resource
-   */
-  public setCurrentRootOfStructedEnvironement(url: string): void {
-    if (this.regexRootStructuredEnvironement === undefined) {
-      this.currentRootOfStructuredEnvironement = undefined;
-    } else {
-      const groups = new RegExp(this.regexRootStructuredEnvironement, 'u').exec(url);
-      this.currentRootOfStructuredEnvironement = Array.isArray(groups) ? groups[0] : undefined;
-    }
   }
 
   /**
@@ -300,7 +291,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       this.mediatorDereferenceRdf.mediate({ url: iri, context })
         .then((response) => {
           response.data.on('data', (quad: RDF.Quad) => {
-            if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS)) {
+            if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE)) {
               links.push({
                 url: quad.object.value,
                 metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }},
@@ -331,7 +322,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return new Promise((resolve) => {
       let shapeIndexLocation: string | undefined;
       metadata.on('data', (quad: RDF.Quad) => {
-        if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_TREE_LOCATOR)) {
+        if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_LOCATOR_NODE)) {
           shapeIndexLocation = quad.object.value;
         }
       });
@@ -373,7 +364,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         },
       });
 
-      for (const [ shapeName, entry ] of shapeIndex) {
+      for (const [ shapeName, entry ] of shapeIndex.entries) {
         if (resultsReport.unAlignedShapes.has(shapeName)) {
           resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
@@ -381,23 +372,19 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
       }
 
-      if (resultsReport.allSubjectGroupsHaveStrongAlignment &&
-        this.deactivateReachabilityOnAprioriSearchDomainDetection &&
-        this.currentRootOfStructuredEnvironement !== undefined) {
+      if (this.aprioriKnowledgeOftheSearchDomain(resultsReport)) {
         const currentIndex = this.linkDeactivationMap.get(EVERY_REACHABILITY_CRITERIA);
         if (currentIndex === undefined) {
           this.linkDeactivationMap.set(EVERY_REACHABILITY_CRITERIA, {
             actorParam: new Map(),
-            urlPatterns: new Set([ new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u') ]),
+            urlPatterns: new Set([ shapeIndex.domain ]),
             urls: new Set(),
           });
         } else {
-          currentIndex.urlPatterns.add(new RegExp(`${this.currentRootOfStructuredEnvironement}*`, 'u'));
+          currentIndex.urlPatterns.add(shapeIndex.domain);
         }
 
-        const rootStructuredEnvironement = this.currentRootOfStructuredEnvironement;
-
-        this.filters.set(`${this.currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
+        this.filters.set(`${shapeIndex.domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
           const metadata = link.metadata;
           if (metadata === undefined) {
             return false;
@@ -405,13 +392,17 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           if (metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
             return false;
           }
-          const regexResp = new RegExp(`${rootStructuredEnvironement}/.*`, 'u').test(link.url);
-          return regexResp;
+          return shapeIndex.domain.test(link.url);
         });
       }
     }
 
     return resp;
+  }
+
+  private aprioriKnowledgeOftheSearchDomain(resultsReport: IResult): boolean {
+    return resultsReport.allSubjectGroupsHaveStrongAlignment &&
+      this.deactivateReachabilityOnAprioriSearchDomainDetection;
   }
 
   /**
@@ -424,13 +415,17 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return new Promise<IShapeIndex | Error>((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context })
         .then(async(response) => {
-          const shapeIndexInformation: Map<string, {
-            shape?: string;
-            target?: IShapeIndexTarget;
-          }> = new Map();
+          const shapeIndexInformation: IShapeIndexInformation = {
+            declaration: false,
+            isComplete: undefined,
+            domain: undefined,
+            entries: [],
+            bindingShapes: new Map(),
+            targets: new Map(),
+          };
 
           response.data.on('data', (quad: RDF.Quad) => {
-            this.fillShapeIndexInformation(quad, shapeIndexInformation);
+            this.fillShapeIndexInformation(quad, shapeIndexIri, shapeIndexInformation);
           });
 
           response.data.on('error', (error) => {
@@ -451,32 +446,38 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   /**
    * Associate the information from a quad into a map of shape index information.
    * @param {RDF.Quad} quad - A quad
+   * @param {string} shapeIndexIri - Iri of the Shape Index
    * @param {Map<string, {shape?: string; target?: IShapeIndexTarget;}>} shapeIndexInformation
    * - The shape index information fetch from a quad stream
    */
-  private fillShapeIndexInformation(quad: RDF.Quad, shapeIndexInformation: Map<string, {
-    shape?: string;
-    target?: IShapeIndexTarget;
-  }>): void {
-    if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_TREE_SHAPE)) {
-      const entry = shapeIndexInformation.get(quad.subject.value);
-      if (entry === undefined) {
-        shapeIndexInformation.set(quad.subject.value, { shape: quad.object.value });
-      } else {
-        entry.shape = quad.object.value;
-      }
-    }
-
-    const isAContainer = quad.predicate.equals(ActorExtractLinksShapeIndex.SOLID_INSTANCE_CONTAINER);
-    if (quad.predicate.equals(ActorExtractLinksShapeIndex.SOLID_INSTANCE) ||
-      isAContainer
-    ) {
-      const entry = shapeIndexInformation.get(quad.subject.value);
-      if (entry === undefined) {
-        shapeIndexInformation.set(quad.subject.value, { target: { iri: quad.object.value, isAContainer }});
-      } else {
-        entry.target = { iri: quad.object.value, isAContainer };
-      }
+  private fillShapeIndexInformation(
+    quad: RDF.Quad,
+    shapeIndexIri: string,
+    shapeIndexInformation: IShapeIndexInformation,
+  ): void {
+    if (quad.subject.value === shapeIndexIri && quad.predicate.equals(ActorExtractLinksShapeIndex.RDF_TYPE_NODE)) {
+      shapeIndexInformation.declaration =
+      quad.object.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_CLASS_DEFINITION_NODE) ||
+       shapeIndexInformation.declaration;
+    } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_DOMAIN_NODE)) {
+      shapeIndexInformation.domain = quad.object.value;
+    } else if (quad.subject.value === shapeIndexIri &&
+      quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_ENTRY_NODE)) {
+      shapeIndexInformation.entries.push(quad.object.value);
+    } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_BIND_BY_SHAPE_NODE)) {
+      shapeIndexInformation.bindingShapes.set(quad.subject.value, quad.object.value);
+    } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SOLID_INSTANCE_NODE)) {
+      shapeIndexInformation.targets.set(quad.subject.value, {
+        isAContainer: false,
+        iri: quad.object.value,
+      });
+    } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SOLID_INSTANCE_CONTAINER_NODE)) {
+      shapeIndexInformation.targets.set(quad.subject.value, {
+        isAContainer: true,
+        iri: quad.object.value,
+      });
+    } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_IS_COMPLETE_NODE)) {
+      shapeIndexInformation.isComplete = Boolean(quad.object.equals(ActorExtractLinksShapeIndex.RDF_TRUE_NODE));
     }
   }
 
@@ -487,39 +488,56 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IActionContext} context - The current context of the engine
    * @returns {Promise<[IShape, string]|Error>} The shape index of the Pod
    */
-  public async getShapeIndex(shapeIndexInformation: Map<string, {
-    shape?: string;
-    target?: IShapeIndexTarget;
-  }>, context: IActionContext): Promise<IShapeIndex> {
-    const promises: Promise<[IShape, string] | Error>[] = [];
-    const iriShapeIndex: Map<string, IShapeIndexTarget> = new Map();
-    for (const [ _subject, shape_target ] of shapeIndexInformation) {
-      if (shape_target.shape !== undefined && shape_target.target !== undefined) {
-        promises.push(this.getShapeFromIRI(shape_target.shape, context));
-        iriShapeIndex.set(shape_target.shape, shape_target.target);
-      }
+  public async getShapeIndex(
+    shapeIndexInformation: IShapeIndexInformation,
+    context: IActionContext,
+  ): Promise<IShapeIndex | Error> {
+    if (!shapeIndexInformation.declaration) {
+      return new Error('the RDF type of the shape index is not defined');
     }
-    const results = await Promise.all(promises);
-    return this.shapeIndexFromPromiseResult(results, iriShapeIndex);
+    if (shapeIndexInformation.domain === undefined) {
+      return new Error('the domain of the shape index is not defined');
+    }
+    const isComplete = shapeIndexInformation.isComplete ?? false;
+    const shapeRequestPromises: Promise<[IShape, string] | Error>[] = [];
+    const targets: Map<string, IShapeIndexTarget> = new Map();
+    for (const entry of shapeIndexInformation.entries) {
+      const shapeIri = shapeIndexInformation.bindingShapes.get(entry);
+      const target = shapeIndexInformation.targets.get(entry);
+
+      if (shapeIri === undefined || target === undefined) {
+        continue;
+      }
+      targets.set(entry, target);
+      shapeRequestPromises.push(this.getShapeFromIRI(shapeIri, entry, context));
+    }
+
+    const results = await Promise.all(shapeRequestPromises);
+    return this.shapeIndexFromPromiseResult(results, targets, shapeIndexInformation.domain, isComplete);
   }
 
   private shapeIndexFromPromiseResult(
     results: ([IShape, string] | Error)[],
-    iriShapeIndex: Map<string, IShapeIndexTarget>,
+    targets: Map<string, IShapeIndexTarget>,
+    domain: string,
+    isComplete: boolean,
   ): IShapeIndex {
-    const shapeIndex: IShapeIndex = new Map();
+    const shapeIndex: IShapeIndex = {
+      isComplete,
+      domain: new RegExp(domain, 'u'),
+      entries: new Map(),
+    };
     for (const res of results) {
       // We simply don't add to the index shapes that are not available or invalid
       if (!(res instanceof Error)) {
-        const shape = res[0];
-        const iri = res[1];
-        const shapeTarget = iriShapeIndex.get(iri);
-        if (shapeTarget !== undefined) {
-          shapeIndex.set(shape.name, {
+        const [ shape, entryIndex ] = res;
+        const target = targets.get(entryIndex);
+        if (target !== undefined) {
+          const entry: IShapeIndexEntry = {
+            ...target,
             shape,
-            iri: shapeTarget.iri,
-            isAContainer: shapeTarget.isAContainer,
-          });
+          };
+          shapeIndex.entries.set(target.iri, entry);
         }
       }
     }
@@ -529,10 +547,11 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   /**
    * Fetch the shape from an iri.
    * @param {string} iri - The iri of the shape
-   * @param {IActionContext} context - the context of the current engine
-   * @returns {Promise<[IShape, string]|Error>} A shape object and the iri where it has been fetch
+   * @param {string} entry - The entry related to the shape
+   * @param {IActionContext} context - The context of the current engine
+   * @returns {Promise<[IShape, string]|Error>} A shape object and the entry related to the shape
    */
-  public async getShapeFromIRI(iri: string, context: IActionContext): Promise<[IShape, string] | Error> {
+  public async getShapeFromIRI(iri: string, entry: string, context: IActionContext): Promise<[IShape, string] | Error> {
     return new Promise((resolve) => {
       this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async(response) => {
         const shape = await shapeFromQuads(response.data, iri);
@@ -540,7 +559,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           resolve(shape);
           return;
         }
-        resolve([ shape, iri ]);
+        resolve([ shape, entry ]);
       }, error => resolve(error));
     });
   }
@@ -552,7 +571,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   private static getShapesFromShapeIndex(shapeIndex: IShapeIndex): IShape[] {
     const shapes: IShape[] = [];
-    for (const entry of shapeIndex.values()) {
+    for (const entry of shapeIndex.entries.values()) {
       shapes.push(entry.shape);
     }
     return shapes;
@@ -589,12 +608,6 @@ export interface IActorExtractLinksShapeIndexArgs
    * Consider the strong alignment between the shape and the query.
    */
   strongAlignment?: boolean;
-
-  /**
-   * A regex for the root of the pod.
-   * exemple: "http(?s):\/\/.*\/pods\/\d*"
-   */
-  regexRootStructuredEnvironement?: string;
   /**
    * Deactivate reachability if it is possible to determine a priori
    * which subset of the structured environment are required for the query execution
@@ -619,12 +632,20 @@ type IFilteredIndexEntries = Readonly<{
 /**
  * The target of a shape index
  */
-type IShapeIndexTarget = Omit<IShapeIndexEntry, 'shape'>;
+type IShapeIndexTarget = Readonly<{
+  isAContainer: boolean;
+  iri: string;
+}>;
 
 /**
  * A shape index
  */
-type IShapeIndex = Map<string, IShapeIndexEntry>;
+interface IShapeIndex {
+  isComplete: boolean;
+  domain: RegExp;
+  // Iri by IShapeIndexEntry
+  entries: Map<string, IShapeIndexEntry>;
+}
 
 /**
  * The entry of a shape index
@@ -634,3 +655,15 @@ type IShapeIndexEntry = Readonly<{
   iri: string;
   shape: IShape;
 }>;
+
+/**
+ * Information about a shape index from a set of quads
+ */
+interface IShapeIndexInformation {
+  declaration: boolean;
+  domain?: string;
+  isComplete?: boolean;
+  entries: string[];
+  bindingShapes: Map<string, string>;
+  targets: Map<string, IShapeIndexTarget>;
+}

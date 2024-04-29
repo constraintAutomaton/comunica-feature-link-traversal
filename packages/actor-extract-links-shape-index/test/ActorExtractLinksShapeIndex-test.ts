@@ -225,6 +225,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
       });
+      const entry = 'bar';
 
       it('should return an Error if the shape IRI resource contains no quads', async() => {
         mediatorDereferenceRdf = <any>{
@@ -241,7 +242,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.getShapeFromIRI(iri, context)).resolves.toBeInstanceOf(Error);
+        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
       });
 
       it('should return an error the mediator fail to fetch the quads', async() => {
@@ -261,7 +262,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.getShapeFromIRI(iri, context)).resolves.toBeInstanceOf(Error);
+        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
       });
 
       it('should return an error given quads not representing a ShEx shape', async() => {
@@ -285,7 +286,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.getShapeFromIRI(iri, context)).resolves.toBeInstanceOf(Error);
+        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
       });
 
       it('should return an error given quads representing multiple ShEx shapes', async() => {
@@ -333,7 +334,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.getShapeFromIRI(iri, context)).resolves.toBeInstanceOf(Error);
+        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
       });
 
       it('should return a shape given quads representing a ShEx shapes', async() => {
@@ -372,10 +373,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        const resp = await actor.getShapeFromIRI(iri, context);
+        const resp = await actor.getShapeFromIRI(iri, entry, context);
         expect(resp).not.toBeInstanceOf(Error);
-        const [ shape, respIri ] = <[IShape, string]>resp;
-        expect(respIri).toBe(iri);
+        const [ shape, respEntry ] = <[IShape, string]>resp;
+        expect(respEntry).toBe(entry);
         expect(shape.name).toBe(iri);
         expect(shape.closed).toBe(false);
         expect(shape.positivePredicates).toStrictEqual([ 'http://exemple.com#id' ]);
@@ -398,202 +399,180 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.restoreAllMocks();
       });
 
-      it('should return an empty shape index given an empty map of shape index information', async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map();
+      it('should return an error if there is no shape information', async() => {
+        const shapeIndexInformation: any = {
+          declaration: false,
+          isComplete: undefined,
+          domain: undefined,
+          entries: [],
+          bindingShapes: new Map(),
+          targets: new Map(),
+        };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
+        await expect(actor.getShapeIndex(shapeIndexInformation, context))
+          .resolves.toThrow('the RDF type of the shape index is not defined');
         expect(spy).not.toHaveBeenCalled();
       });
 
-      it('should return an empty shape index given that every shape information are invalid', async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true }}],
-          [ 'foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false }}],
-        ]);
-
-        const spy = jest.spyOn(actor, 'getShapeFromIRI');
-        spy.mockResolvedValue(new Error('foo'));
-
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
-      });
-
-      it('should return an empty shape index given that every shape information are incomplete', async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map([
-          [ 'foo', { target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
-        ]);
+      it('should return an error if there is no shape index declaration', async() => {
+        const shapeIndexInformation: any = {
+          declaration: false,
+          isComplete: undefined,
+          domain: 'bar',
+          entries: [ 'foo' ],
+          bindingShapes: new Map([[ 'foo', 'shape' ]]),
+          targets: new Map([[ 'foo', { isAContainer: true, iri: 'target' }]]),
+        };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(new Map());
+        await expect(actor.getShapeIndex(shapeIndexInformation, context))
+          .resolves.toThrow('the RDF type of the shape index is not defined');
         expect(spy).not.toHaveBeenCalled();
       });
 
-      it('should return a shape index with element from complete information', async() => {
-        const shapeIndexInformation: Map<string, any> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
-          [ 'foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true }}],
-        ]);
+      it('should return an error if there is domain', async() => {
+        const shapeIndexInformation: any = {
+          declaration: true,
+          isComplete: undefined,
+          domain: undefined,
+          entries: [ 'foo' ],
+          bindingShapes: new Map([[ 'foo', 'shape' ]]),
+          targets: new Map([[ 'foo', { isAContainer: true, iri: 'target' }]]),
+        };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
-        spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
-          return new Promise((resolve) => {
-            let shape: any;
-            for (const value of shapeIndexInformation.values()) {
-              if (value.shape === iri) {
-                shape = { name: iri };
-              }
-            }
-            resolve([ shape, iri ]);
-          });
-        });
 
-        const expectedResult = new Map(
-          [
-            [
-              'bar',
-              {
-                isAContainer: false,
-                iri: 'boo',
-                shape: { name: 'bar' },
-              },
-            ],
-            [
-              'bar3',
-              {
-                isAContainer: true,
-                iri: 'boo3',
-                shape: { name: 'bar3' },
-              },
-            ],
-          ],
-        );
-
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
-        expect(spy).toHaveBeenCalledTimes(2);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context))
+          .resolves.toThrow('the domain of the shape index is not defined');
+        expect(spy).not.toHaveBeenCalled();
       });
 
-      it(`should return a shape index with element from complete information
-       given that some information are not valid`, async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1' }],
-          [ 'foo2', {}],
-          [ 'foo3', { shape: 'bar3', target: { iri: 'boo3', isAContainer: true }}],
-          [ 'foo4', { shape: 'bar4', target: { iri: 'boo4', isAContainer: true }}],
-        ]);
+      it('should return a shape index with no entries if no entry was found in the quad set', async() => {
+        const shapeIndexInformation: any = {
+          declaration: true,
+          isComplete: undefined,
+          domain: 'domain',
+          entries: [],
+          bindingShapes: new Map([[ 'foo', 'shape' ]]),
+          targets: new Map([[ 'foo', { isAContainer: true, iri: 'target' }]]),
+        };
+
+        const expectedShapeIndex: any = {
+          isComplete: false,
+          domain: /domain/u,
+          entries: new Map(),
+        };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
-        spy.mockImplementation((iri: string, _context: any): Promise<[any, string] | Error> => {
-          return new Promise((resolve) => {
-            if (iri === 'bar4') {
-              resolve(new Error('foo'));
-            } else {
-              let shape: any;
-              for (const value of shapeIndexInformation.values()) {
-                if (value.shape === iri) {
-                  shape = { name: iri };
-                }
-              }
-              resolve([ shape, iri ]);
-            }
-          });
-        });
 
-        const expectedResult = new Map([
-          [
-            'bar',
-            {
-              isAContainer: false,
-              iri: 'boo',
-              shape: { name: 'bar' },
-            },
-          ],
-          [
-            'bar3',
-            {
-              isAContainer: true,
-              iri: 'boo3',
-              shape: { name: 'bar3' },
-            },
-          ],
-        ]);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
+          .toStrictEqual(expectedShapeIndex);
+        expect(spy).not.toHaveBeenCalled();
+      });
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
+      it('should return a shape index with one entry', async() => {
+        const shapeIndexInformation: any = {
+          declaration: true,
+          isComplete: true,
+          domain: 'domain',
+          entries: [ 'foo' ],
+          bindingShapes: new Map([[ 'foo', 'shapeIri' ]]),
+          targets: new Map([[ 'foo', { isAContainer: true, iri: 'target' }]]),
+        };
+
+        const expectedShapeIndex: any = {
+          isComplete: true,
+          domain: /domain/u,
+          entries: new Map([[ 'target', { isAContainer: true, iri: 'target', shape: 'shape' }]]),
+        };
+        const spy = jest.spyOn(actor, 'getShapeFromIRI')
+          .mockResolvedValueOnce(<any>[ 'shape', 'foo' ]);
+
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
+          .toStrictEqual(expectedShapeIndex);
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
+
+      it('should return a shape index with multiple entries', async() => {
+        const shapeIndexInformation: any = {
+          declaration: true,
+          isComplete: true,
+          domain: 'domain',
+          entries: [ 'foo', 'foo1', 'foo2' ],
+          bindingShapes: new Map([
+            [ 'foo', 'shapeIri' ],
+            [ 'foo1', 'shapeIri1' ],
+            [ 'foo2', 'shapeIri2' ],
+          ]),
+          targets: new Map([
+            [ 'foo', { isAContainer: true, iri: 'target' }],
+            [ 'foo1', { isAContainer: true, iri: 'target1' }],
+            [ 'foo2', { isAContainer: false, iri: 'target2' }],
+          ]),
+        };
+
+        const expectedShapeIndex: any = {
+          isComplete: true,
+          domain: /domain/u,
+          entries: new Map([
+            [ 'target', { isAContainer: true, iri: 'target', shape: 'shape' }],
+            [ 'target1', { isAContainer: true, iri: 'target1', shape: 'shape1' }],
+            [ 'target2', { isAContainer: false, iri: 'target2', shape: 'shape2' }],
+          ]),
+        };
+        const spy = jest.spyOn(actor, 'getShapeFromIRI')
+          .mockResolvedValueOnce(<any>[ 'shape', 'foo' ])
+          .mockResolvedValueOnce(<any>[ 'shape1', 'foo1' ])
+          .mockResolvedValueOnce(<any>[ 'shape2', 'foo2' ]);
+
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
+          .toStrictEqual(expectedShapeIndex);
         expect(spy).toHaveBeenCalledTimes(3);
       });
 
-      it('should return a shape index given valid information', async() => {
-        const shapeIndexInformation: Map<string, {
-          shape?: string;
-          target?: any;
-        }> = new Map([
-          [ 'foo', { shape: 'bar', target: { iri: 'boo', isAContainer: false }}],
-          [ 'foo1', { shape: 'bar1', target: { iri: 'boo1', isAContainer: true }}],
-          [ 'foo2', { shape: 'bar2', target: { iri: 'boo2', isAContainer: false }}],
-        ]);
+      it('should return a shape index with multiple entries and blank entries', async() => {
+        const shapeIndexInformation: any = {
+          declaration: true,
+          isComplete: true,
+          domain: 'domain',
+          entries: [ 'foo', 'foo1', 'foo2', 'foo4000' ],
+          bindingShapes: new Map([
+            [ 'foo', 'shapeIri' ],
+            [ 'foo1', 'shapeIri1' ],
+            [ 'foo2', 'shapeIri2' ],
+            [ 'bar', '?' ],
+            [ 'bar1', '?o' ],
+          ]),
+          targets: new Map([
+            [ 'foo', { isAContainer: true, iri: 'target' }],
+            [ 'foo1', { isAContainer: true, iri: 'target1' }],
+            [ 'foo2', { isAContainer: false, iri: 'target2' }],
+            [ 'bar', { isAContainer: false, iri: 'target?' }],
+            [ '?', { isAContainer: true, iri: 'target??' }],
+          ]),
+        };
 
-        const spy = jest.spyOn(actor, 'getShapeFromIRI');
-        spy.mockImplementation((iri: string, _context: any): Promise<[any, string]> => {
-          return new Promise((resolve) => {
-            let shape: any;
-            for (const value of shapeIndexInformation.values()) {
-              if (value.shape === iri) {
-                shape = { name: iri };
-              }
-            }
-            resolve([ shape, iri ]);
-          });
-        });
+        const expectedShapeIndex: any = {
+          isComplete: true,
+          domain: /domain/u,
+          entries: new Map([
+            [ 'target', { isAContainer: true, iri: 'target', shape: 'shape' }],
+            [ 'target1', { isAContainer: true, iri: 'target1', shape: 'shape1' }],
+            [ 'target2', { isAContainer: false, iri: 'target2', shape: 'shape2' }],
+          ]),
+        };
+        const spy = jest.spyOn(actor, 'getShapeFromIRI')
+          .mockResolvedValueOnce(<any>[ 'shape', 'foo' ])
+          .mockResolvedValueOnce(<any>[ 'shape1', 'foo1' ])
+          .mockResolvedValueOnce(<any>[ 'shape2', 'foo2' ]);
 
-        const expectedResult = new Map([
-          [
-            'bar',
-            {
-              isAContainer: false,
-              iri: 'boo',
-              shape: { name: 'bar' },
-            },
-          ],
-          [
-            'bar1',
-            {
-              isAContainer: true,
-              iri: 'boo1',
-              shape: { name: 'bar1' },
-            },
-          ],
-          [
-            'bar2',
-            {
-              isAContainer: false,
-              iri: 'boo2',
-              shape: { name: 'bar2' },
-            },
-          ],
-        ]);
-
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves.toStrictEqual(expectedResult);
+        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
+          .toStrictEqual(expectedShapeIndex);
         expect(spy).toHaveBeenCalledTimes(3);
       });
     });
 
     describe('generateShapeIndex', () => {
-      const shapeIndexIri = '';
+      const shapeIndexIri = 'http://localhost:3000/pods/00000000000000000065/shapeIndex';
       const context: any = {};
 
       beforeEach(() => {
@@ -635,7 +614,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
         });
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(new Map());
+        await expect(actor.generateShapeIndex(shapeIndexIri, context))
+          .resolves.toThrow('the RDF type of the shape index is not defined');
       });
 
       it('should return an error if the quad stream return an error', async() => {
@@ -662,8 +642,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toBeInstanceOf(Error);
       });
 
-      it(`should call the shapeIndex method with the correct argument 
-      given a quad stream with one unvalid shape index entry`, async() => {
+      it(`should return an error if unrelated triples are dereferenced`, async() => {
         const quadString = `
         _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
         `;
@@ -682,37 +661,25 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
         });
-        const expectedIndex: any = [];
-        const spy = jest.spyOn(actor, 'getShapeIndex');
-        spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
-        const expectedShapeInformation = {
-          shape: 'http://localhost:3000/pods/00000000000000000065/profile_shape',
-        };
 
-        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
-
-        expect(spy).toHaveBeenCalledTimes(1);
-        for (const entry of (<Map<string, any>>spy.mock.calls[0][0]).values()) {
-          expect(entry).toStrictEqual(expectedShapeInformation);
-        }
-        expect(resp).toStrictEqual(expectedIndex);
+        await expect(actor.generateShapeIndex(shapeIndexIri, context))
+          .resolves.toThrow('the RDF type of the shape index is not defined');
       });
 
-      it(`should call the shapeIndex method with the correct argument 
-      given a quad stream with multiple shape index entries where some are valid and other are not`, async() => {
+      it(`should return a shape index`, async() => {
         const quadString = `
-        _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
-        
-        _:df_3_1131 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/posts/> .
-        _:df_3_1131 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/posts_shape> .
-        
-        _:df_3_4148 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/comments_shape> .
-        
-        _:foo <http://www.w3.org/foo> <http://localhost:3000/bar> .
-        _:foo2 <http://www.w3.org/foo2> <http://localhost:3000/bar2> .
-
-        _:df_3_11312 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/foo_shape> .
-        _:df_3_11312 <http://www.w3.org/ns/solid/terms#instance> <http://localhost:3000/pods/00000000000000000065/foo/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://shapeIndex.com#ShapeIndex> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#domain> "http://localhost:3000/pods/00000000000000000065/.*" .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_71 .
+        _:df_3_71 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/profile_shape#Profile> .
+        _:df_3_71 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_2060 .
+        _:df_3_2060 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/posts_shape#Post> .
+        _:df_3_2060 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/posts/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_4148 .
+        _:df_3_4148 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/comments_shape#Comment> .
+        _:df_3_4148 <http://www.w3.org/ns/solid/terms#instance> <http://localhost:3000/pods/00000000000000000065/comments#1> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#isComplete> true .
         `;
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
@@ -729,45 +696,70 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
         });
-        const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
-          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: []}},
-        ];
-        const spy = jest.spyOn(actor, 'getShapeIndex');
-        spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
-        const expectedShapeInformation = [
-          {
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/profile/', isAContainer: true },
-          },
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/posts_shape',
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/posts/', isAContainer: true },
-          },
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/comments_shape',
-          },
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/foo_shape',
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/foo/', isAContainer: false },
-          },
-        ];
+        jest.spyOn(actor, 'getShapeFromIRI')
+          .mockImplementation((iri: string, entry: string, _: any) => {
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/profile_shape#Profile') {
+              return <any>[ 'shape_profile', entry ];
+            }
 
-        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/posts_shape#Post') {
+              return <any>[ 'shape_post', entry ];
+            }
 
-        expect(spy).toHaveBeenCalledTimes(1);
-        const callArray = [ ...(<Map<string, any>>spy.mock.calls[0][0]).values() ];
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/comments_shape#Comment') {
+              return <any>[ 'shape_comment', entry ];
+            }
+          });
 
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(callArray.sort()).toStrictEqual(expectedShapeInformation.sort());
-        expect(resp).toStrictEqual(expectedIndex);
+        const expectedShapeIndex = {
+          isComplete: true,
+          domain: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
+          entries: new Map([
+            [
+              'http://localhost:3000/pods/00000000000000000065/profile/',
+              {
+                isAContainer: true,
+                iri: 'http://localhost:3000/pods/00000000000000000065/profile/',
+                shape: 'shape_profile',
+              },
+            ],
+            [
+              'http://localhost:3000/pods/00000000000000000065/posts/',
+              {
+                isAContainer: true,
+                iri: 'http://localhost:3000/pods/00000000000000000065/posts/',
+                shape: 'shape_post',
+              },
+            ],
+            [
+              'http://localhost:3000/pods/00000000000000000065/comments#1',
+              {
+                isAContainer: false,
+                iri: 'http://localhost:3000/pods/00000000000000000065/comments#1',
+                shape: 'shape_comment',
+              },
+            ],
+          ]),
+        };
+
+        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(expectedShapeIndex);
       });
 
-      it(`should call the shapeIndex method with the valid argument given a quad stream 
-      with one valid shape index entry`, async() => {
+      it(`should return a shape index with extra information`, async() => {
         const quadString = `
-        _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
-        _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://shapeIndex.com#ShapeIndex> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <foo> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#domain> "http://localhost:3000/pods/00000000000000000065/.*" .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_71 .
+        _:df_3_71 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/profile_shape#Profile> .
+        _:df_3_71 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_2060 .
+        _:df_3_2060 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/posts_shape#Post> .
+        _:df_3_2060 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/posts/> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#entry> _:df_3_4148 .
+        _:df_3_4148 <https://shapeIndex.com#bindByShape> <http://localhost:3000/pods/00000000000000000065/comments_shape#Comment> .
+        _:df_3_4148 <http://www.w3.org/ns/solid/terms#instance> <http://localhost:3000/pods/00000000000000000065/comments#1> .
+        <http://localhost:3000/pods/00000000000000000065/shapeIndex> <https://shapeIndex.com#isComplete> true .
         `;
         const quads: RDF.Quad[] = n3Parser.parse(quadString);
 
@@ -784,85 +776,59 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
         });
-        const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
-        ];
-        const spy = jest.spyOn(actor, 'getShapeIndex');
-        spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
-        const expectedShapeInformation = {
-          shape: 'http://localhost:3000/pods/00000000000000000065/profile_shape',
-          target: { iri: 'http://localhost:3000/pods/00000000000000000065/profile/', isAContainer: true },
+        jest.spyOn(actor, 'getShapeFromIRI')
+          .mockImplementation((iri: string, entry: string, _: any) => {
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/profile_shape#Profile') {
+              return <any>[ 'shape_profile', entry ];
+            }
+
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/posts_shape#Post') {
+              return <any>[ 'shape_post', entry ];
+            }
+
+            if (iri === 'http://localhost:3000/pods/00000000000000000065/comments_shape#Comment') {
+              return <any>[ 'shape_comment', entry ];
+            }
+          });
+
+        const expectedShapeIndex = {
+          isComplete: true,
+          domain: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
+          entries: new Map([
+            [
+              'http://localhost:3000/pods/00000000000000000065/profile/',
+              {
+                isAContainer: true,
+                iri: 'http://localhost:3000/pods/00000000000000000065/profile/',
+                shape: 'shape_profile',
+              },
+            ],
+            [
+              'http://localhost:3000/pods/00000000000000000065/posts/',
+              {
+                isAContainer: true,
+                iri: 'http://localhost:3000/pods/00000000000000000065/posts/',
+                shape: 'shape_post',
+              },
+            ],
+            [
+              'http://localhost:3000/pods/00000000000000000065/comments#1',
+              {
+                isAContainer: false,
+                iri: 'http://localhost:3000/pods/00000000000000000065/comments#1',
+                shape: 'shape_comment',
+              },
+            ],
+          ]),
         };
 
-        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
-
-        expect(spy).toHaveBeenCalledTimes(1);
-        for (const [ _, entry ] of <Map<string, any>>spy.mock.calls[0][0]) {
-          expect(entry).toStrictEqual(expectedShapeInformation);
-        }
-        expect(resp).toStrictEqual(expectedIndex);
-      });
-
-      it(`should call the shapeIndex method with the valid argument 
-      given a quad stream with multiple valid shape index entries`, async() => {
-        const quadString = `
-        _:df_3_715 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/profile_shape> .
-        _:df_3_715 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/profile/> .
-        _:df_3_1131 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/posts_shape> .
-        _:df_3_1131 <http://www.w3.org/ns/solid/terms#instanceContainer> <http://localhost:3000/pods/00000000000000000065/posts/> .
-        _:df_3_4148 <http://www.w3.org/ns/shapetrees#shape> <http://localhost:3000/pods/00000000000000000065/comments_shape> .
-        _:df_3_4148 <http://www.w3.org/ns/solid/terms#instance> <http://localhost:3000/pods/00000000000000000065/comments> .
-        
-        `;
-        const quads: RDF.Quad[] = n3Parser.parse(quadString);
-
-        mediatorDereferenceRdf = <any>{
-          mediate: jest.fn(async() => ({
-            data: new ArrayIterator(quads, { autoStart: false }),
-          })),
-        };
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-        const expectedIndex: any = [
-          { iri: 'foo', isAContainer: true, shape: { name: 'bar', properties: []}},
-          { iri: 'foo1', isAContainer: true, shape: { name: 'bar1', properties: []}},
-        ];
-        const spy = jest.spyOn(actor, 'getShapeIndex');
-        spy.mockReturnValue(new Promise(resolve => resolve(expectedIndex)));
-        const expectedShapeInformation = [
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/profile_shape',
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/profile/', isAContainer: true },
-          },
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/posts_shape',
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/posts/', isAContainer: true },
-          },
-          {
-            shape: 'http://localhost:3000/pods/00000000000000000065/comments_shape',
-            target: { iri: 'http://localhost:3000/pods/00000000000000000065/comments', isAContainer: false },
-          },
-        ];
-
-        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
-
-        expect(spy).toHaveBeenCalledTimes(1);
-        const callArray = [ ...(<Map<string, any>>spy.mock.calls[0][0]).values() ];
-        // We just want to compare unordered arrays
-        // eslint-disable-next-line ts/require-array-sort-compare
-        expect(callArray.sort()).toStrictEqual(expectedShapeInformation.sort());
-        expect(resp).toStrictEqual(expectedIndex);
+        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(expectedShapeIndex);
       });
     });
 
     describe('filterResourcesFromShapeIndex', () => {
-      let shapeIndex: any = new Map();
+      let shapeIndex: any = {};
+      const domain = /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u;
 
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
@@ -874,7 +840,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
         });
-        shapeIndex = new Map([
+        const entries = new Map([
           [
             'foo',
             {
@@ -916,6 +882,12 @@ describe('ActorExtractLinksShapeIndex', () => {
             },
           ],
         ]);
+
+        shapeIndex = {
+          entries,
+          domain,
+          isComplete: false,
+        };
         jest.restoreAllMocks();
       });
 
@@ -929,7 +901,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           FILTER (year(?x) > 2000)
       }`);
         (<any>actor).query = generateQuery(query);
-        shapeIndex = new Map();
+        shapeIndex = {
+          entries: new Map(),
+          domain: /a/u,
+          isComplete: false,
+        };
         const expectedFilteredResource = {
           accepted: [],
           rejected: [],
@@ -1028,7 +1004,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
           shapeIntersection: true,
         });
-        shapeIndex = new Map([
+        const entries = new Map([
           [
             'foo',
             {
@@ -1064,6 +1040,10 @@ describe('ActorExtractLinksShapeIndex', () => {
             },
           ],
         ]);
+        shapeIndex = {
+          ...shapeIndex,
+          entries,
+        };
 
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
@@ -1099,7 +1079,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should deactivate the chosen reachability criteria given all the alignment are strong', () => {
+      it('should deactivate reachability criteria if the flag is activated', () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1109,11 +1089,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
           shapeIntersection: true,
           strongAlignment: true,
-          regexRootStructuredEnvironement: 'http://.*/pods/d*',
           deactivateReachabilityOnAprioriSearchDomainDetection: true,
         });
 
-        shapeIndex = new Map([
+        const entries = new Map([
           [
             'foo',
             {
@@ -1157,6 +1136,11 @@ describe('ActorExtractLinksShapeIndex', () => {
             },
           ],
         ]);
+
+        shapeIndex = {
+          ...shapeIndex,
+          entries,
+        };
 
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
@@ -1186,7 +1170,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const expectedDeactivationMap = new Map([
           [
             EVERY_REACHABILITY_CRITERIA,
-            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]) },
+            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
           ],
         ]);
 
@@ -1204,6 +1188,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
           [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
           [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
+          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}, false ],
         ];
 
         for (const [ link, expected ] of testLinks) {
@@ -1224,11 +1209,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           restrictedToSolid: true,
           shapeIntersection: true,
           strongAlignment: true,
-          regexRootStructuredEnvironement: 'http://.*/pods/d*',
           deactivateReachabilityOnAprioriSearchDomainDetection: true,
         });
 
-        shapeIndex = new Map([
+        const entries = new Map([
           [
             'foo',
             {
@@ -1273,15 +1257,19 @@ describe('ActorExtractLinksShapeIndex', () => {
           ],
         ]);
 
+        shapeIndex = {
+          ...shapeIndex,
+          entries,
+        };
+
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
           ?x a <http://exemple.ca/Foo> .
           ?y a <http://exemple.ca/Bar>.
           FILTER (year(?x) > 2000)
       }`);
-        const currentRootOfStructuredEnvironement = 'http://localhost:3000/pods/00000000000000000065';
+
         (<any>actor).query = generateQuery(query);
-        (<any>actor).currentRootOfStructuredEnvironement = currentRootOfStructuredEnvironement;
         (<any>actor).linkDeactivationMap = new Map();
         (<any>actor).filters = new Map();
 
@@ -1301,7 +1289,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const expectedDeactivationMap = new Map([
           [
             EVERY_REACHABILITY_CRITERIA,
-            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ new RegExp(`${(<any>actor).currentRootOfStructuredEnvironement}*`, 'u') ]) },
+            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
           ],
         ]);
 
@@ -1319,6 +1307,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
           [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
           [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
+          [{ url: 'http://localhost:3000/pods/00000000000000000065/abce.com', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}, false ],
         ];
 
         for (const [ link, expected ] of reTestLinks) {
@@ -1328,18 +1317,22 @@ describe('ActorExtractLinksShapeIndex', () => {
           }
         }
 
-        const reCurrentRootOfStructuredEnvironement = 'http://localhost:3000/pods/007';
-        (<any>actor).currentRootOfStructuredEnvironement = reCurrentRootOfStructuredEnvironement;
+        const newDomain = /http:\/\/localhost:3000\/pods\/007\/.*/u;
 
-        const reResp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const newShapeIndex = {
+          domain: newDomain,
+          entries,
+          isComplete: false,
+        };
+        const reResp = actor.filterResourcesFromShapeIndex(newShapeIndex);
 
         const reExpectedDeactivationMap = new Map([
           [ EVERY_REACHABILITY_CRITERIA, {
             actorParam: new Map(),
             urls: new Set(),
             urlPatterns: new Set([
-              new RegExp(`${currentRootOfStructuredEnvironement}*`, 'u'),
-              new RegExp(`${reCurrentRootOfStructuredEnvironement}*`, 'u'),
+              domain,
+              newDomain,
             ]),
           }],
         ]);
@@ -1349,70 +1342,71 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(actor.getFilters().size).toBe(2);
         const testLinks: [any, Record<string, boolean>][] = [
           [
+            { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}},
+            {
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+            },
+          ],
+          [
             { url: '' },
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
           [
             { url: 'http://localhost:3000/pods/00000000000000000065' },
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
 
           ],
           [
             { url: 'http://localhost:3000/pods/00000000000000000065/test' },
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}},
-            {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
+
           [
             { url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
 
           [
             { url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
           [
             { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
             },
           ],
 
           [
             { url: 'http://localhost:3000/pods/007/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
             },
 
           ],
           [
             { url: 'http://localhost:3000/pods/007/bar', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
             {
-              [`${currentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${reCurrentRootOfStructuredEnvironement}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
+              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
+              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
             },
           ],
         ];
@@ -1420,7 +1414,8 @@ describe('ActorExtractLinksShapeIndex', () => {
         for (const [ link, expected ] of testLinks) {
           for (const [ key, filterFunction ] of actor.getFilters()) {
             let filtered = filterFunction(link);
-            expect(filtered).toBe(expected[key]);
+            const expectedFilteredValue = expected[key];
+            expect(filtered).toBe(expectedFilteredValue);
             if (link.metadata !== undefined) {
               const linkProducedByShapeIndex = { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
               filtered = filterFunction(linkProducedByShapeIndex);
@@ -1488,7 +1483,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           ),
           DF.quad(
             DF.blankNode(),
-            ActorExtractLinksShapeIndex.SHAPE_TREE_LOCATOR,
+            ActorExtractLinksShapeIndex.SHAPE_INDEX_LOCATOR_NODE,
             DF.namedNode(shapetreeLocation),
           ),
           DF.quad(
@@ -1619,12 +1614,12 @@ describe('ActorExtractLinksShapeIndex', () => {
               ),
               DF.quad(
                 DF.blankNode(),
-                ActorExtractLinksShapeIndex.LDP_CONTAINS,
+                ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE,
                 DF.namedNode(iris[0]),
               ),
               DF.quad(
                 DF.blankNode(),
-                ActorExtractLinksShapeIndex.LDP_CONTAINS,
+                ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE,
                 DF.namedNode(iris[1]),
               ),
               DF.quad(
@@ -1634,7 +1629,7 @@ describe('ActorExtractLinksShapeIndex', () => {
               ),
               DF.quad(
                 DF.blankNode(),
-                ActorExtractLinksShapeIndex.LDP_CONTAINS,
+                ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE,
                 DF.namedNode(iris[2]),
               ),
             ], { autoStart: false }),
@@ -2236,7 +2231,11 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
         jest.spyOn(actor, 'addRejectedEntryFilters');
-        jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue(new Map());
+        jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue({
+          isComplete: false,
+          domain: /https:\/\/example.qc.ca\/.*/u,
+          entries: new Map(),
+        });
 
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
         spyAddIri.mockResolvedValue([{ url: 'foo' }]);
@@ -2315,58 +2314,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp).toStrictEqual(filters);
         filters.set('W', () => false);
         expect(resp).not.toStrictEqual(filters);
-      });
-    });
-
-    describe('setCurrentRootOfStructedEnvironement', () => {
-      it('should set the rootOfStructureEnvironment to the matching part of the given regex', () => {
-        const bus: any = new Bus({ name: 'bus' });
-        const actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-          regexRootStructuredEnvironement: 'http://.*/pods/\\d*/',
-        });
-        const url = 'http://localhost:3000/pods/00000000000000000065/foo/bar/bar.ttl';
-        actor.setCurrentRootOfStructedEnvironement(url);
-
-        expect((<any>actor).currentRootOfStructuredEnvironement).toBe('http://localhost:3000/pods/00000000000000000065/');
-      });
-
-      it('should set to undefined given that no regex was passed to the actor', () => {
-        const bus: any = new Bus({ name: 'bus' });
-        const actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-        const url = 'http://localhost:3000/pods/00000000000000000065/foo/bar/bar.ttl';
-        actor.setCurrentRootOfStructedEnvironement(url);
-
-        expect((<any>actor).currentRootOfStructuredEnvironement).toBeUndefined();
-      });
-
-      it('should set to undefined if the url doesn\'t match the regex', () => {
-        const bus: any = new Bus({ name: 'bus' });
-        const actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-          regexRootStructuredEnvironement: 'http://.*/pods/\\d*/',
-        });
-        const url = 'http://localhost:3000/frogs/00000000000000000065/foo/bar/bar.ttl';
-        actor.setCurrentRootOfStructedEnvironement(url);
-
-        expect((<any>actor).currentRootOfStructuredEnvironement).toBeUndefined();
       });
     });
   });
