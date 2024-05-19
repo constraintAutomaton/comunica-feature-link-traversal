@@ -30,8 +30,6 @@ const DF = new DataFactory<RDF.BaseQuad>();
 
 /**
  * A comunica Shape Index Extract Links Actor.
- * @todo get the root of the storage using the storage description instead of a regex.
- * A regex approach is used because SolidBench consider that the whole benchmark is one pod
  */
 export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public static readonly RDF_TYPE_NODE = DF.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
