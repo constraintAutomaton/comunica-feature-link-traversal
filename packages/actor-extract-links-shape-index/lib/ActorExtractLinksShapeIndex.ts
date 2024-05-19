@@ -13,13 +13,14 @@ import type { FilterFunction, IActorExtractDescription } from '@comunica/types-l
 import { PRODUCED_BY_ACTOR, EVERY_REACHABILITY_CRITERIA } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
+  ContainmentResult,
   generateQuery,
   shapeFromQuads,
-  reportAlignment,
+  solveShapeQueryContainment,
 } from 'query-shape-detection';
 import type {
   IResult,
-  Query,
+  IQuery,
   IShape,
 } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
@@ -63,19 +64,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   private filters: Map<string, FilterFunction> = new Map();
   private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
 
-  private query?: Query = undefined;
+  private query?: IQuery = undefined;
 
   private readonly cacheShapeIndexIri = true;
-  private readonly deactivateReachabilityOnAprioriSearchDomainDetection: boolean;
   private readonly shapeIndexHandled: Set<string> = new Set();
-
-  private readonly shapeIntersection?: boolean;
-  private readonly strongAlignment?: boolean;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
-    this.deactivateReachabilityOnAprioriSearchDomainDetection =
-      args.deactivateReachabilityOnAprioriSearchDomainDetection ?? false;
   }
 
   /**
@@ -204,20 +199,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public getLinkDeactivatedMap(): Map<string, IActorExtractDescription> {
     return new Map(this.linkDeactivationMap);
-  }
-
-  /**
-   * Provide a semi deep copy of the query.
-   * Changing the value of the returned value will not affect the actor
-   * but the underlying triples are not deep copies, but the members of the class are
-   * immutable.
-   * @returns {Query|undefined} - A semi deep copy of the query
-   */
-  public getQuery(): Query | undefined {
-    if (this.query === undefined) {
-      return undefined;
-    }
-    return new Map(this.query);
   }
 
   /**
@@ -355,24 +336,35 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     if (this.query !== undefined) {
       const shapes = ActorExtractLinksShapeIndex.getShapesFromShapeIndex(shapeIndex);
 
-      const resultsReport: IResult = reportAlignment({
+      const resultsReport: IResult = solveShapeQueryContainment({
         query: this.query,
         shapes,
-        option: {
-          shapeIntersection: this.shapeIntersection,
-          strongAlignment: this.strongAlignment,
-        },
       });
 
-      for (const [ shapeName, entry ] of shapeIndex.entries) {
-        if (resultsReport.unAlignedShapes.has(shapeName)) {
-          resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
-        } else {
-          resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+      let fullyContained = true;
+      const mapResult: Map<string, boolean> = new Map();
+      for (const result of resultsReport.starPatternsContainment.values()) {
+        if (result.result === ContainmentResult.ALIGNED || result.result === ContainmentResult.REJECTED) {
+          fullyContained = false;
+        }
+        if (result.result === ContainmentResult.DEPEND && result.target === undefined) {
+          fullyContained = false;
+        }
+        for (const target of result.target ?? []) {
+          mapResult.set(target, true);
         }
       }
 
-      if (this.aprioriKnowledgeOftheSearchDomain(resultsReport)) {
+      for (const [ shapeName, entry ] of shapeIndex.entries) {
+        if (mapResult.has(shapeName) || mapResult.size === 0) {
+          resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+        } else {
+          resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
+        }
+      }
+
+      // If we know the domain then we can restrict the domain
+      if (this.aprioriKnowledgeOftheSearchDomain(fullyContained, shapeIndex.isComplete)) {
         const currentIndex = this.linkDeactivationMap.get(EVERY_REACHABILITY_CRITERIA);
         if (currentIndex === undefined) {
           this.linkDeactivationMap.set(EVERY_REACHABILITY_CRITERIA, {
@@ -400,9 +392,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     return resp;
   }
 
-  private aprioriKnowledgeOftheSearchDomain(resultsReport: IResult): boolean {
-    return resultsReport.allSubjectGroupsHaveStrongAlignment &&
-      this.deactivateReachabilityOnAprioriSearchDomainDetection;
+  private aprioriKnowledgeOftheSearchDomain(fullyContained: boolean, completeShapeIndex: boolean): boolean {
+    return fullyContained || completeShapeIndex;
   }
 
   /**
@@ -457,8 +448,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   ): void {
     if (quad.subject.value === shapeIndexIri && quad.predicate.equals(ActorExtractLinksShapeIndex.RDF_TYPE_NODE)) {
       shapeIndexInformation.declaration =
-      quad.object.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_CLASS_DEFINITION_NODE) ||
-       shapeIndexInformation.declaration;
+        quad.object.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_CLASS_DEFINITION_NODE) ||
+        shapeIndexInformation.declaration;
     } else if (quad.predicate.equals(ActorExtractLinksShapeIndex.SHAPE_INDEX_DOMAIN_NODE)) {
       shapeIndexInformation.domain = quad.object.value;
     } else if (quad.subject.value === shapeIndexIri &&
@@ -598,16 +589,10 @@ export interface IActorExtractLinksShapeIndexArgs
    * Don't execute the actor if the document is not in a Solid pod.
    */
   restrictedToSolid: boolean;
-
-  /**
-   * Discriminate resources based on the shape intersection.
-   */
-  shapeIntersection?: boolean;
-
   /**
    * Consider the strong alignment between the shape and the query.
    */
-  strongAlignment?: boolean;
+  heuristicClassPriority?: boolean;
   /**
    * Deactivate reachability if it is possible to determine a priori
    * which subset of the structured environment are required for the query execution

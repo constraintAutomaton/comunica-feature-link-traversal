@@ -28,7 +28,7 @@ describe('ActorExtractLinksShapeIndex', () => {
     const cacheShapeIndexIri = false;
 
     describe('test', () => {
-      let context = new ActionContext({
+      let context: any = new ActionContext({
         [KeysInitQuery.query.name]: '',
       });
       beforeEach(() => {
@@ -105,7 +105,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         await expect(actor.test(<any>{ context, headers })).resolves.toBe(true);
       });
       describe('deactivation', () => {
-        const input = undefined;
+        const input: any = undefined;
 
         beforeEach(() => {
           context = new ActionContext({
@@ -994,211 +994,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should return the correct filtered resource given an actor with shapeIntersection', () => {
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-          shapeIntersection: true,
-        });
-        const entries = new Map([
-          [
-            'foo',
-            {
-              isAContainer: true,
-              iri: 'foo',
-              shape: {
-                name: 'foo',
-                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
-              },
-            },
-          ],
-          [
-            'foo1',
-            {
-              isAContainer: true,
-              iri: 'foo1',
-              shape: {
-                name: 'foo1',
-                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
-              },
-            },
-          ],
-          [
-            'foo2',
-            {
-
-              isAContainer: true,
-              iri: 'foo2',
-              shape: {
-                name: 'foo2',
-                positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/4' ],
-              },
-            },
-          ],
-        ]);
-        shapeIndex = {
-          ...shapeIndex,
-          entries,
-        };
-
-        const query = translate(`SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x <http://exemple.ca/1> ?z .
-          ?z <http://exemple.ca/2023> "abc" .
-          ?x <http://exemple.ca/4> <http://objet.fr> .
-          <http://sujet.cm> <http://predicat.cm> "def" .
-          FILTER (year(?x) > 2000)
-      }`);
-        (<any>actor).query = generateQuery(query);
-
-        const expectedFilteredResource = {
-          accepted: [
-            {
-              isAContainer: true,
-              iri: 'foo2',
-            },
-          ],
-          rejected: [
-            {
-              isAContainer: true,
-              iri: 'foo',
-            },
-            {
-              isAContainer: true,
-              iri: 'foo1',
-            },
-          ],
-        };
-
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
-
-        expect(resp).toStrictEqual(expectedFilteredResource);
-      });
-
-      it('should deactivate reachability criteria if the flag is activated', () => {
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-          shapeIntersection: true,
-          strongAlignment: true,
-          deactivateReachabilityOnAprioriSearchDomainDetection: true,
-        });
-
-        const entries = new Map([
-          [
-            'foo',
-            {
-              isAContainer: true,
-              iri: 'foo',
-              shape: new Shape({
-                closed: true,
-                name: 'foo',
-                positivePredicates: [
-                  {
-                    name: TYPE_DEFINITION.value,
-                    constraint: {
-                      value: new Set([ 'http://exemple.ca/Foo' ]),
-                      type: ContraintType.TYPE,
-                    },
-                  },
-                  'http://exemple.ca/2',
-                ],
-              }),
-            },
-          ],
-          [
-            'foo1',
-            {
-              isAContainer: true,
-              iri: 'foo1',
-              shape: new Shape({
-                closed: true,
-                name: 'foo1',
-                positivePredicates: [
-                  {
-                    name: TYPE_DEFINITION.value,
-                    constraint: {
-                      value: new Set([ 'http://exemple.ca/Bar' ]),
-                      type: ContraintType.TYPE,
-                    },
-                  },
-                  'http://exemple.ca/2',
-                ],
-              }),
-            },
-          ],
-        ]);
-
-        shapeIndex = {
-          ...shapeIndex,
-          entries,
-        };
-
-        const query = translate(`SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x a <http://exemple.ca/Foo> .
-          ?y a <http://exemple.ca/Bar>.
-          FILTER (year(?x) > 2000)
-      }`);
-
-        (<any>actor).query = generateQuery(query);
-        (<any>actor).currentRootOfStructuredEnvironement = 'http://localhost:3000/pods/00000000000000000065';
-        (<any>actor).linkDeactivationMap = new Map();
-        (<any>actor).filters = new Map();
-
-        const expectedFilteredResource = {
-          accepted: [
-            {
-              isAContainer: true,
-              iri: 'foo',
-            },
-            {
-              isAContainer: true,
-              iri: 'foo1',
-            },
-          ],
-          rejected: [],
-        };
-        const expectedDeactivationMap = new Map([
-          [
-            EVERY_REACHABILITY_CRITERIA,
-            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
-          ],
-        ]);
-
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
-
-        expect(resp).toStrictEqual(expectedFilteredResource);
-        expect(actor.getLinkDeactivatedMap()).toStrictEqual(expectedDeactivationMap);
-        expect(actor.getFilters().size).toBe(1);
-        const testLinks: [any, boolean][] = [
-          [{ url: '' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/test' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}}, true ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, true ],
-
-          [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}, false ],
-        ];
-
-        for (const [ link, expected ] of testLinks) {
-          for (const [ _, filterFunction ] of actor.getFilters()) {
-            const filtered = filterFunction(link);
-            expect(filtered).toBe(expected);
-          }
-        }
-      });
-
       it('should deactivate the chosen reachability criteria for multiple storages', () => {
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
@@ -1207,9 +1002,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
           restrictedToSolid: true,
-          shapeIntersection: true,
-          strongAlignment: true,
-          deactivateReachabilityOnAprioriSearchDomainDetection: true,
+          heuristicClassPriority: true,
         });
 
         const entries = new Map([
@@ -2132,7 +1925,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValueOnce(new Map());
+        spyGenerateShapeIndex.mockResolvedValueOnce({ isComplete: false, domain: /.*/u, entries: new Map() });
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValueOnce({
           accepted: [],
           rejected: [],
@@ -2171,7 +1964,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValue(new Map());
+        spyGenerateShapeIndex.mockResolvedValue({ isComplete: false, domain: /.*/u, entries: new Map() });
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockReturnValue({
           accepted: [],
           rejected: [],
@@ -2211,11 +2004,11 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'foo' }]});
-        expect(actor.getQuery()).toStrictEqual(generateQuery(firstQuery));
+        expect((<any>actor).query).toStrictEqual(generateQuery(firstQuery));
 
         spyAddIri.mockResolvedValue([{ url: 'bar' }]);
         await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'bar' }]});
-        expect(actor.getQuery()).toStrictEqual(generateQuery(secondQuery));
+        expect((<any>actor).query).toStrictEqual(generateQuery(secondQuery));
       });
 
       it('should return an empty link array given the shape index has already been handled', async() => {
@@ -2255,41 +2048,6 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         await expect(actor.run(action)).resolves.toStrictEqual({ links: [{ url: 'foo' }]});
         await expect(actor.run(action)).resolves.toStrictEqual({ links: []});
-      });
-    });
-
-    describe('getQuery', () => {
-      beforeEach(() => {
-        bus = new Bus({ name: 'bus' });
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-      });
-
-      it('should get undefined if the query is undefined', () => {
-        expect(actor.getQuery()).toBeUndefined();
-      });
-
-      it('should get a deep copy of the query', () => {
-        const query = translate(`SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x <http://exemple.ca/1> ?z .
-          ?z <http://exemple.ca/2023> "abc" .
-          ?w <http://exemple.ca/4> <http://objet.fr> .
-          <http://sujet.cm> <http://predicat.cm> "def" .
-          FILTER (year(?x) > 2000)
-      }`);
-        (<any>actor).query = generateQuery(query);
-        const resp: any = actor.getQuery();
-
-        expect(resp).toStrictEqual(generateQuery(query));
-        resp?.set('W', {});
-        expect(resp).not.toStrictEqual(generateQuery(query));
       });
     });
 
