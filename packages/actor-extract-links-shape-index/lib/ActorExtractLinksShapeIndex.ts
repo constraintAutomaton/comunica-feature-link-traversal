@@ -591,11 +591,6 @@ export interface IActorExtractLinksShapeIndexArgs
    * Consider the strong alignment between the shape and the query.
    */
   heuristicClassPriority?: boolean;
-  /**
-   * Deactivate reachability if it is possible to determine a priori
-   * which subset of the structured environment are required for the query execution
-   */
-  deactivateReachabilityOnAprioriSearchDomainDetection?: boolean;
 }
 
 /**
