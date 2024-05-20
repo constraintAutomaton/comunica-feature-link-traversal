@@ -249,7 +249,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const promises: Promise<ILink[] | Error>[] = [];
     for (const indexEntry of filteredResources.accepted) {
       if (!indexEntry.isAContainer) {
-        links.push({ url: indexEntry.iri });
+        links.push({ url: indexEntry.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }} });
       } else if (this.addIriFromContainerInLinkQueue) {
         promises.push(this.getResourceIriFromContainer(indexEntry.iri, context));
       }
@@ -358,8 +358,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
       }
 
-      for (const [ shapeName, entry ] of shapeIndex.entries) {
-        if (mapResult.has(shapeName) || mapResult.size === 0) {
+      for (const entry  of shapeIndex.entries.values()) {
+        if (mapResult.has(entry.shape.name) || mapResult.size === 0) {
           resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
           resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
