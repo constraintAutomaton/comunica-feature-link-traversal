@@ -13,7 +13,7 @@
       "mediatorDereferenceRdf": { "@id": "urn:comunica:default:dereference-rdf/mediators#main" },
       "addIriFromContainerInLinkQueue": true,
       "cacheShapeIndexIri": true,
-      "restrictedToSolid": true
+      "restrictedToSolid": false
     }
   ]
 }
