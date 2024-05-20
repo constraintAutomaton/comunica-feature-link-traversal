@@ -3,8 +3,9 @@ import type { ActorInitQuery } from '@comunica/actor-init-query';
 import { BindingsFactory } from '@comunica/bindings-factory';
 import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
 import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
+import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
@@ -100,6 +101,120 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
 
       it('should be true for a valid context', async() => {
         await expect(actor.test(<any>{ context })).resolves.toBeTruthy();
+      });
+
+      describe('deactivation', () => {
+        beforeEach(() => {
+          context = new ActionContext({
+            [KeysInitQuery.query.name]: AF.createBgp([
+              AF.createPattern(
+                DF.variable('s'),
+                DF.namedNode(ActorExtractLinksSolidTypeIndex.RDF_TYPE),
+                DF.namedNode('ex:class1'),
+              ),
+              AF.createPattern(DF.variable('s'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
+            ]),
+            [KeysQueryOperation.operation.name]: AF.createPattern(
+              DF.variable('s'),
+              DF.namedNode('ex:p'),
+              DF.namedNode('ex:bla'),
+            ),
+          });
+        });
+        it('should test if there is no deactivation map in the context', async() => {
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it('should test if the predicate actor is not in the deactivation map', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it('should not test if the right url is targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should not test if the right url regex is targeted', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  actor.name,
+                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it(`should not test if the right url regex is targeted 
+        given all the reachability criteria are targeted`, async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+            .rejects.toThrow('the extractor has been deactivated');
+        });
+
+        it('should test if the right actor is targeted by with the wrong url', async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  actor.name,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
+
+        it(`should test if the right actor is targeted by with the wrong url 
+        given all the reachability criteria are targeted`, async() => {
+          context = context
+            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+              [
+                [
+                  EVERY_REACHABILITY_CRITERIA,
+                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
+                ],
+              ],
+            ));
+          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+            .resolves.toBe(true);
+        });
       });
     });
 

@@ -15,10 +15,6 @@ export class ActorExtractLinksHeaders extends ActorExtractLinks {
     this.headers = args.headersRegexes.map(stringRegex => new RegExp(stringRegex, 'u'));
   }
 
-  public async test(_action: IActionExtractLinks): Promise<IActorTest> {
-    return true;
-  }
-
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
     return new Promise((resolve, _reject) => {
       const headers = action.headers;

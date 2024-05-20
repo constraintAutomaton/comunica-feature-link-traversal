@@ -11,7 +11,9 @@
     "ShapeTree",
     "ContentPolicy",
     "BindingsStreamAdaptiveDestroy",
-    "MetadataValidationState"
+    "MetadataValidationState",
+    "LinkQueueFilterLinks",
+    "LinkQueueSaveOnDiskInfo"
   ],
   "modulePrefix": {}
 }

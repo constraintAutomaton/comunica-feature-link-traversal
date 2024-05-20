@@ -1242,7 +1242,7 @@
     cross-fetch "^4.0.0"
     stream-to-string "^1.2.0"
 
-"@comunica/actor-init-query@^3.1.0":
+"@comunica/actor-init-query@^3.0.1", "@comunica/actor-init-query@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@comunica/actor-init-query/-/actor-init-query-3.1.0.tgz#b289f511a3ab663e0f2368557fed46ef7dbaa09d"
   integrity sha512-XRtumQ2gyciT5YIOgWbpews/yg1FaGK7vIb+LJIwdNcz7mSXpZW61+zSHZNlEZE7LooVvobMYhYSjAfPLzN4uA==
@@ -2742,7 +2742,7 @@
     rdf-data-factory "^1.1.1"
     rdf-string "^1.6.1"
 
-"@comunica/bus-context-preprocess@^3.1.0":
+"@comunica/bus-context-preprocess@^3.0.1", "@comunica/bus-context-preprocess@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@comunica/bus-context-preprocess/-/bus-context-preprocess-3.1.0.tgz#32eb49978e2e8bf38814a54c478cb5ba7b769903"
   integrity sha512-nubJHgaSrV4yJX4vyFdkocfD3WGuTeAWI7UYSH7MzJptGyMb8G0x0C2QbSBkW3rcc1mDLU3UOPgzs47DQudlBw==
@@ -2854,7 +2854,7 @@
     "@comunica/types" "^3.1.0"
     sparqlalgebrajs "^4.3.3"
 
-"@comunica/bus-query-operation@^3.1.0":
+"@comunica/bus-query-operation@^3.0.1", "@comunica/bus-query-operation@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@comunica/bus-query-operation/-/bus-query-operation-3.1.0.tgz#8dbdea26f1e4dd75b22a98d845d361562db90e43"
   integrity sha512-P6b2quZ/NKr6UgveSqY7h7AVbXsSTkTTha3n9GOqCOITw69Slk8STAu3KB17RNobYhWLfqvtvdRC3aGY0mB2pw==
@@ -2967,7 +2967,7 @@
     "@comunica/core" "^3.1.0"
     "@comunica/types" "^3.1.0"
 
-"@comunica/bus-rdf-metadata-extract@^3.1.0":
+"@comunica/bus-rdf-metadata-extract@^3.0.1", "@comunica/bus-rdf-metadata-extract@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@comunica/bus-rdf-metadata-extract/-/bus-rdf-metadata-extract-3.1.0.tgz#ae24cd83e1a2e5b8deb1ea5a224e390196bb3a6a"
   integrity sha512-xTcvtV0HEgABasBulBWJ9/usk/JfI0V662K2XJx5vGHuU2WIvYWNot8B9I+xAd2Iwa5slJGGgQCVjrEEZp6NOw==
@@ -3027,7 +3027,7 @@
     "@comunica/bus-rdf-resolve-hypermedia-links" "^3.1.0"
     "@comunica/core" "^3.1.0"
 
-"@comunica/bus-rdf-resolve-hypermedia-links@^3.1.0":
+"@comunica/bus-rdf-resolve-hypermedia-links@^3.0.1", "@comunica/bus-rdf-resolve-hypermedia-links@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@comunica/bus-rdf-resolve-hypermedia-links/-/bus-rdf-resolve-hypermedia-links-3.1.0.tgz#019fde09ead0aed5d7e361845446ff3d658239b3"
   integrity sha512-DbeqNJ1xxQEdqaa8UFvmTDRJeauWHRX++HTA39uaQcR/R4228URaisI9mdtgDXXywUlxDeYrq2i1KMI5Lvbwhw==
@@ -10506,6 +10506,17 @@ jsonld-context-parser@^2.0.0, jsonld-context-parser@^2.0.2, jsonld-context-parse
     http-link-header "^1.0.2"
     relative-to-absolute-iri "^1.0.5"
 
+jsonld-context-parser@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/jsonld-context-parser/-/jsonld-context-parser-2.4.0.tgz#fae15a56c5ceabd1c4520ab1a9cc12c9a0a8b67d"
+  integrity sha512-ZYOfvh525SdPd9ReYY58dxB3E2RUEU4DJ6ZibO8AitcowPeBH4L5rCAitE2om5G1P+HMEgYEYEr4EZKbVN4tpA==
+  dependencies:
+    "@types/http-link-header" "^1.0.1"
+    "@types/node" "^18.0.0"
+    cross-fetch "^3.0.6"
+    http-link-header "^1.0.2"
+    relative-to-absolute-iri "^1.0.5"
+
 jsonld-streaming-parser@^3.0.1:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/jsonld-streaming-parser/-/jsonld-streaming-parser-3.2.0.tgz#b879eae6389617746b24101e5a04eba60af0a15d"
@@ -10519,6 +10530,22 @@ jsonld-streaming-parser@^3.0.1:
     canonicalize "^1.0.1"
     http-link-header "^1.0.2"
     jsonld-context-parser "^2.3.0"
+    rdf-data-factory "^1.1.0"
+    readable-stream "^4.0.0"
+
+jsonld-streaming-parser@^3.3.0:
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/jsonld-streaming-parser/-/jsonld-streaming-parser-3.4.0.tgz#ea0c74b7a108c4aacd4eaa8518348bd89b9fff0a"
+  integrity sha512-897CloyQgQidfkB04dLM5XaAXVX/cN9A2hvgHJo4y4jRhIpvg3KLMBBfcrswepV2N3T8c/Rp2JeFdWfVsbVZ7g==
+  dependencies:
+    "@bergos/jsonparse" "^1.4.0"
+    "@rdfjs/types" "*"
+    "@types/http-link-header" "^1.0.1"
+    "@types/readable-stream" "^2.3.13"
+    buffer "^6.0.3"
+    canonicalize "^1.0.1"
+    http-link-header "^1.0.2"
+    jsonld-context-parser "^2.4.0"
     rdf-data-factory "^1.1.0"
     readable-stream "^4.0.0"
 
@@ -11402,6 +11429,14 @@ n3@^1.16.3, n3@^1.17.0, n3@^1.6.3:
   version "1.17.1"
   resolved "https://registry.yarnpkg.com/n3/-/n3-1.17.1.tgz#cb42f39507cebebf2c990c2f8a3f5f53232c518c"
   integrity sha512-HlanMWpvN2kcTrFuU3GPObyY7qrVQWy2Hp7l4GSXJlcQapjQMR7OM4kCr788pTQzNIpiHS3JRvyZ2YUcYJ82rA==
+  dependencies:
+    queue-microtask "^1.1.2"
+    readable-stream "^4.0.0"
+
+n3@^1.17.2:
+  version "1.17.3"
+  resolved "https://registry.yarnpkg.com/n3/-/n3-1.17.3.tgz#28f33fae36812226bc677f17742afe32f7d2a105"
+  integrity sha512-ZHc24eZi2GIJcJQVxtL6NT3g+mTHRNeTVfXWELzeUOirqLrh2AAyg0nfYZ/kryJWKFSCgO37DGB6Ok3qmGgEcA==
   dependencies:
     queue-microtask "^1.1.2"
     readable-stream "^4.0.0"
@@ -12543,6 +12578,14 @@ qs@^6.10.1, qs@^6.11.2, qs@^6.4.0:
   integrity sha512-tDNIz22aBzCDxLtVH++VnTfzxlfeK5CbqohpSqpJgj1Wg/cQbStNAz3NuqCs5vV+pjBsK4x4pN9HlVh7rcYRiA==
   dependencies:
     side-channel "^1.0.4"
+
+query-shape-detection@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.1.2.tgz#0799d1a606e79e1697a800847ec5bbab959742cf"
+  integrity sha512-ooLJSsRlNCASWgkwQhVS8Ka51FZo56Q29khtzR5xBUc7NTGZuXi856YZJNBIY8FIXAA9H9SwTKo3PZFQW68JKQ==
+  dependencies:
+    rdf-data-factory "^1.1.2"
+    sparqlalgebrajs "^4.3.0"
 
 querystring-es3@^0.2.1:
   version "0.2.1"

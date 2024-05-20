@@ -66,11 +66,18 @@ export class ActorExtractLinksQuadPatternQuery extends ActorExtractLinks {
     return matchingPatterns;
   }
 
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    if (!ActorExtractLinksQuadPatternQuery.getCurrentQuery(action.context)) {
-      throw new Error(`Actor ${this.name} can only work in the context of a query.`);
-    }
-    return true;
+  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
+    return new Promise((resolve, reject) => {
+      super.test(action).then(() => {
+        if (!ActorExtractLinksQuadPatternQuery.getCurrentQuery(action.context)) {
+          reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
+          return;
+        }
+        resolve(true);
+      }, (reason: Error) => {
+        reject(reason);
+      });
+    });
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

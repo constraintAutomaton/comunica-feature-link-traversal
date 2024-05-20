@@ -1,6 +1,6 @@
 import { ActionContextKey } from '@comunica/core';
 import type { IDataDestination } from '@comunica/types';
-import type { AnnotateSourcesType } from '@comunica/types-link-traversal';
+import type { AnnotateSourcesType, FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
 
 /**
  * When adding entries to this file, also add a shortcut for them in the contextKeyShortcuts TSDoc comment in
@@ -24,7 +24,7 @@ export const KeysExtractLinksTree = {
    * Default true.
    */
   strictTraversal:
- new ActionContextKey<boolean>('@comunica/actor-extract-links-tree:strictTraversal'),
+    new ActionContextKey<boolean>('@comunica/actor-extract-links-tree:strictTraversal'),
 };
 
 export const KeysRdfJoin = {
@@ -33,3 +33,19 @@ export const KeysRdfJoin = {
    */
   skipAdaptiveJoin: new ActionContextKey<IDataDestination>('@comunica/bus-rdf-join:skipAdaptiveJoin'),
 };
+
+export const KeysFilter = {
+  /**
+   * Link filters for the link queue.
+   */
+  filters: new ActionContextKey<Map<string, FilterFunction>>('@comunica/bus-extract-links:filter'),
+};
+
+export const KeysDeactivateLinkExtractor = {
+  /**
+   * Deactivate a link extractor for links repecting a regex.
+   */
+  deactivate: new ActionContextKey<DeactivationMap>('@comunica/bus-extract-links:deactivateLinkExtractor'),
+};
+
+type DeactivationMap = Map<string, IActorExtractDescription>;

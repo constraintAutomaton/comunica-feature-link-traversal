@@ -12,10 +12,6 @@ export class ActorExtractLinksAll extends ActorExtractLinks {
     super(args);
   }
 
-  public async test(_action: IActionExtractLinks): Promise<IActorTest> {
-    return true;
-  }
-
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
     return {
       links: await ActorExtractLinks.collectStream(action.metadata, (quad, links) => {

@@ -34,10 +34,6 @@ export class ActorExtractLinksContentPolicies extends ActorExtractLinks
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
   }
 
-  public async test(_action: IActionExtractLinks): Promise<IActorTest> {
-    return true;
-  }
-
   public static getContentPolicies(context: IActionContext): ContentPolicy[] {
     return context.get(KEY_CONTEXT_POLICIES) ?? [];
   }

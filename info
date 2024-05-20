@@ -1,0 +1,18 @@
+node:internal/modules/package_json_reader:83
+        throw new ERR_INVALID_PACKAGE_CONFIG(
+              ^
+
+Error [ERR_INVALID_PACKAGE_CONFIG]: Invalid package config /home/bryanelliott/Documents/PhD/coding/comunica-feature-link-traversal/node_modules/@comunica/query-sparql-link-traversal-solid/package.json while importing "@comunica/query-sparql-link-traversal-solid" from /home/bryanelliott/Documents/PhD/coding/comunica-feature-link-traversal/index.mjs. Expected property name or '}' in JSON at position 1459
+    at Object.read (node:internal/modules/package_json_reader:83:15)
+    at packageResolve (node:internal/modules/esm/resolve:835:45)
+    at moduleResolve (node:internal/modules/esm/resolve:927:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1157:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:383:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:352:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:227:38)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/module_job:87:39)
+    at link (node:internal/modules/esm/module_job:86:36) {
+  code: 'ERR_INVALID_PACKAGE_CONFIG'
+}
+
+Node.js v20.13.1

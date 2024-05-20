@@ -6,6 +6,9 @@
     "engines/*",
     "packages/*"
   ],
+  "engines": {
+    "yarn": "^1.22.19"
+  },
   "scripts": {
     "test-changed": "lerna run test --since HEAD",
     "build-changed": "lerna run build --since HEAD",

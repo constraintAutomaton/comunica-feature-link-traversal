@@ -3,6 +3,7 @@
   "version": "0.4.1",
   "description": "A collection of reusable Comunica context key definitions for link traversal.",
   "license": "MIT",
+  "lsd:module": true,
   "homepage": "https://comunica.dev/",
   "repository": {
     "type": "git",
