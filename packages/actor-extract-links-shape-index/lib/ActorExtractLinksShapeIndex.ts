@@ -134,9 +134,14 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeysFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
     // We also reset the cashing of shape index handled
-    if (filters === undefined || filters?.size === 0) {
+    if (filters === undefined) {
       filters = new Map();
       action.context = action.context.set(KeysFilter.filters, filters);
+      this.shapeIndexHandled.clear();
+      this.query = generateQuery(query);
+    }
+
+    if (filters?.size === 0) {
       this.shapeIndexHandled.clear();
       this.query = generateQuery(query);
     }
