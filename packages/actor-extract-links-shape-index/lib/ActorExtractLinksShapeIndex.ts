@@ -144,7 +144,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const linkExtractorDeactivationMap: Map<string, IActorExtractDescription> | undefined =
       action.context.get(KeysDeactivateLinkExtractor.deactivate);
     if (linkExtractorDeactivationMap === undefined) {
-      action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
+      action.context = action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
     }
     this.linkDeactivationMap = action.context.get(KeysDeactivateLinkExtractor.deactivate)!;
 
