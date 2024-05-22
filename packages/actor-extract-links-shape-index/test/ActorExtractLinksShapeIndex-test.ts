@@ -995,6 +995,7 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
 
       it('should deactivate the chosen reachability criteria for multiple storages', () => {
+        const reachabilityToExclude = [ 'foo', 'bar', 'too' ];
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
@@ -1003,6 +1004,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
           restrictedToSolid: true,
           heuristicClassPriority: true,
+          reachabilityToExclude,
         });
 
         const entries = new Map([
@@ -1079,12 +1081,13 @@ describe('ActorExtractLinksShapeIndex', () => {
           ],
           rejected: [],
         };
-        const expectedDeactivationMap = new Map([
-          [
-            EVERY_REACHABILITY_CRITERIA,
-            { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
-          ],
-        ]);
+        const expectedDeactivationMap = new Map(
+          reachabilityToExclude
+            .map(reachability => [
+              reachability,
+              { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
+            ]),
+        );
 
         const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
 
@@ -1119,16 +1122,13 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         const reResp = actor.filterResourcesFromShapeIndex(newShapeIndex);
 
-        const reExpectedDeactivationMap = new Map([
-          [ EVERY_REACHABILITY_CRITERIA, {
-            actorParam: new Map(),
-            urls: new Set(),
-            urlPatterns: new Set([
-              domain,
-              newDomain,
+        const reExpectedDeactivationMap = new Map(
+          reachabilityToExclude
+            .map(reachability => [
+              reachability,
+              { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain, newDomain ]) },
             ]),
-          }],
-        ]);
+        );
 
         expect(reResp).toStrictEqual(expectedFilteredResource);
         expect(actor.getLinkDeactivatedMap()).toStrictEqual(reExpectedDeactivationMap);
@@ -1513,7 +1513,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const expectedIri = accepted.map((value) => {
-          return { url: value.iri };
+          return { url: value.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
         });
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
@@ -1552,7 +1552,10 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
         spy.mockResolvedValue(new Error('foo'));
 
-        const expectedIri = [{ url: 'foo' }, { url: 'foo2' }];
+        const expectedIri = [
+          { url: 'foo', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+          { url: 'foo2', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+        ];
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
           .toStrictEqual(expectedIri);
@@ -1593,9 +1596,12 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
         spy.mockResolvedValue(new Error('foo'));
-        spy.mockResolvedValueOnce([{ url: 'foo1' }, { url: 'foo10' }]);
+        spy.mockResolvedValueOnce([
+          { url: 'foo1', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+          { url: 'foo10', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+        ]);
         const expectedIri = [ 'foo', 'foo2', 'foo1', 'foo10' ].map((value) => {
-          return { url: value };
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
         });
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
@@ -1639,7 +1645,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         spy.mockRejectedValue(new Error('foo'));
         spy.mockResolvedValueOnce([{ url: 'foo1' }, { url: 'foo10' }]);
         const expectedIri = [ 'foo', 'foo2' ].map((value) => {
-          return { url: value };
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
         });
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
