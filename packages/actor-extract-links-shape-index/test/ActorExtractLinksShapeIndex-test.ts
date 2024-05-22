@@ -1103,6 +1103,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
           [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
           [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
+          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: '??' }}}, false ],
           [{ url: 'http://localhost:3000/pods/00000000000000000065/abce.com', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}, false ],
         ];
 

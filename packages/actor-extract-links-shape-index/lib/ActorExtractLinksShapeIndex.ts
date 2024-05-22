@@ -80,7 +80,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
     this.reachabilityToExclude =
-    args.reachabilityToExclude ?? ActorExtractLinksShapeIndex.DEFAULT_REACHABILITY_TO_EXCLUDE;
+      args.reachabilityToExclude ?? ActorExtractLinksShapeIndex.DEFAULT_REACHABILITY_TO_EXCLUDE;
   }
 
   /**
@@ -401,13 +401,16 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             return false;
           }
           const isInDomain = shapeIndex.domain.test(link.url);
+          if (!isInDomain) {
+            return false;
+          }
 
-          for (const reachabilityCriteria of isInDomain ? this.reachabilityToExclude : []) {
+          for (const reachabilityCriteria of this.reachabilityToExclude) {
             if (metadata[PRODUCED_BY_ACTOR]?.name === reachabilityCriteria) {
               return true;
             }
           }
-          return isInDomain;
+          return false;
         });
       }
     }
