@@ -10,7 +10,7 @@ import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entri
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
-import { PRODUCED_BY_ACTOR, EVERY_REACHABILITY_CRITERIA } from '@comunica/types-link-traversal';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
   ContainmentResult,
@@ -56,11 +56,21 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public static readonly ADAPTATIVE_REACHABILITY_LABEL = 'reachability_criteria';
 
+  public static readonly DEFAULT_REACHABILITY_TO_EXCLUDE = [
+    'urn:comunica:default:extract-links/actors#links-describedby',
+    'urn:comunica:default:extract-links/actors#predicates-common',
+    'urn:comunica:default:extract-links/actors#predicates-ldp',
+    'urn:comunica:default:extract-links/actors#predicates-solid',
+    'urn:comunica:default:extract-links/actors#solid-type-index',
+    'urn:comunica:default:extract-links/actors#all',
+  ];
+
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   public readonly addIriFromContainerInLinkQueue: boolean;
   public readonly restrictedToSolid: boolean;
   private filters: Map<string, FilterFunction> = new Map();
   private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
+  private readonly reachabilityToExclude: string[];
 
   private query?: IQuery = undefined;
 
@@ -69,6 +79,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
+    this.reachabilityToExclude =
+    args.reachabilityToExclude ?? ActorExtractLinksShapeIndex.DEFAULT_REACHABILITY_TO_EXCLUDE;
   }
 
   /**
@@ -249,7 +261,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const promises: Promise<ILink[] | Error>[] = [];
     for (const indexEntry of filteredResources.accepted) {
       if (!indexEntry.isAContainer) {
-        links.push({ url: indexEntry.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }} });
+        links.push({ url: indexEntry.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }}});
       } else if (this.addIriFromContainerInLinkQueue) {
         promises.push(this.getResourceIriFromContainer(indexEntry.iri, context));
       }
@@ -358,7 +370,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
       }
 
-      for (const entry  of shapeIndex.entries.values()) {
+      for (const entry of shapeIndex.entries.values()) {
         if (mapResult.has(entry.shape.name) || mapResult.size === 0) {
           resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
@@ -368,17 +380,18 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
       // If we know the domain then we can restrict the domain
       if (this.aprioriKnowledgeOftheSearchDomain(fullyContained, shapeIndex.isComplete)) {
-        const currentIndex = this.linkDeactivationMap.get(EVERY_REACHABILITY_CRITERIA);
-        if (currentIndex === undefined) {
-          this.linkDeactivationMap.set(EVERY_REACHABILITY_CRITERIA, {
-            actorParam: new Map(),
-            urlPatterns: new Set([ shapeIndex.domain ]),
-            urls: new Set(),
-          });
-        } else {
-          currentIndex.urlPatterns.add(shapeIndex.domain);
+        for (const reachabilityCriteria of this.reachabilityToExclude) {
+          const currentIndex = this.linkDeactivationMap.get(reachabilityCriteria);
+          if (currentIndex === undefined) {
+            this.linkDeactivationMap.set(reachabilityCriteria, {
+              actorParam: new Map(),
+              urlPatterns: new Set([ shapeIndex.domain ]),
+              urls: new Set(),
+            });
+          } else {
+            currentIndex.urlPatterns.add(shapeIndex.domain);
+          }
         }
-
         this.filters.set(`${shapeIndex.domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
           const metadata = link.metadata;
           if (metadata === undefined) {
@@ -387,7 +400,14 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           if (metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
             return false;
           }
-          return shapeIndex.domain.test(link.url);
+          const isInDomain = shapeIndex.domain.test(link.url);
+
+          for (const reachabilityCriteria of isInDomain ? this.reachabilityToExclude : []) {
+            if (metadata[PRODUCED_BY_ACTOR]?.name === reachabilityCriteria) {
+              return true;
+            }
+          }
+          return isInDomain;
         });
       }
     }
@@ -596,6 +616,10 @@ export interface IActorExtractLinksShapeIndexArgs
    * Consider the strong alignment between the shape and the query.
    */
   heuristicClassPriority?: boolean;
+  /**
+   * Reachability to exclude on a priori knowledge of the domain
+   */
+  reachabilityToExclude?: string[];
 }
 
 /**
