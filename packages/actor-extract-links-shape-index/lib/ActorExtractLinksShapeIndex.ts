@@ -358,7 +358,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
       let fullyContained = true;
       const mapResult: Map<string, boolean> = new Map();
-      for (const result of resultsReport.starPatternsContainment.values()) {
+      for (const [ starPatternName, result ] of resultsReport.starPatternsContainment) {
         if (result.result === ContainmentResult.ALIGNED || result.result === ContainmentResult.REJECTED) {
           fullyContained = false;
         }
@@ -366,12 +366,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
           fullyContained = false;
         }
         for (const target of result.target ?? []) {
-          mapResult.set(target, true);
+          const starPattern = this.query.starPatterns.get(starPatternName)!;
+          mapResult.set(target, starPattern.isVariable);
         }
       }
 
       for (const entry of shapeIndex.entries.values()) {
-        if (mapResult.has(entry.shape.name) || mapResult.size === 0) {
+        if ((mapResult.get(entry.shape.name) ?? false) || mapResult.size === 0) {
           resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
           resp.rejected.push({ iri: entry.iri, isAContainer: entry.isAContainer });
