@@ -28,7 +28,6 @@ describe('ActorExtractLinksShapeIndex', () => {
     let actor: ActorExtractLinksShapeIndex;
     let bus: any;
     let mediatorDereferenceRdf: any;
-    const addIriFromContainerInLinkQueue = false;
     const cacheShapeIndexIri = false;
 
     describe('test', () => {
