@@ -91,7 +91,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {
     // If there is no query the engine should not work anyways
-    const query: Algebra.Operation = action.context.get(KeysInitQuery.query)!;
+    const query: Algebra.Operation = action.context.getSafe(KeysInitQuery.query);
     // Can we add the IRI of the containers has filters?
     let filters: undefined | Map<string, FilterFunction> = action.context.get(KeysFilter.filters);
     // We add filters to the context, if it doesn't exist or the query has changed
@@ -100,12 +100,16 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       filters = new Map();
       action.context = action.context.set(KeysFilter.filters, filters);
       this.shapeIndexHandled.clear();
-      this.query = generateQuery(query);
+      try {
+        this.query = generateQuery(query);
+      } catch {}
     }
 
     if (filters?.size === 0) {
       this.shapeIndexHandled.clear();
-      this.query = generateQuery(query);
+      try {
+        this.query = generateQuery(query);
+      } catch {}
     }
 
     const linkExtractorDeactivationMap: Map<string, IActorExtractDescription> | undefined =
