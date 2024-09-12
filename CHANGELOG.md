@@ -1,6 +1,23 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v0.5.0"></a>
+## [v0.5.0](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.4.1...v0.5.0) - 2024-08-07
+
+### Added
+* [Add Priority Queue](https://github.com/comunica/comunica-feature-link-traversal/commit/a5908f7e92c652a09e60d30ad01b66ba01bb67a1)
+* [Add link queue wrapper to log link queue occupancy](https://github.com/comunica/comunica-feature-link-traversal/commit/35cc5fd37e0294dd6d669dbeaa05942ac84c9d58)
+
+### Changed
+* [Update Comunica monorepo packages to ^3.2.1 (#143)](https://github.com/comunica/comunica-feature-link-traversal/commit/73ab1372196641dc2755ea06d6d46b8e19b966da)
+
+<a name="v0.4.1"></a>
+## [v0.4.1](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.4.0...v0.4.1) - 2024-05-11
+
+### Changed
+* [Update Comunica monorepo packages to ^3.1.0](https://github.com/comunica/comunica-feature-link-traversal/commit/72df20e9698328d8f7b9bf22961be2ea1382d65a)
+* [Add reachability criteria annotation to the metadata of links](https://github.com/comunica/comunica-feature-link-traversal/commit/5e6a9b09a9080ad09212608c65c7574777fda329)
+
 <a name="v0.4.0"></a>
 ## [v0.4.0](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.3.0...v0.4.0) - 2024-04-11
 

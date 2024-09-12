@@ -1,17 +1,17 @@
 {
   "name": "@comunica/actor-optimize-query-operation-set-seed-sources-quadpattern-iris",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A set-seed-sources-quadpattern-iris optimize-query-operation actor",
   "lsd:module": true,
   "license": "MIT",
   "homepage": "https://comunica.dev/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/comunica/comunica.git",
+    "url": "https://github.com/comunica/comunica-feature-link-traversal.git",
     "directory": "packages/actor-optimize-query-operation-set-seed-sources-quadpattern-iris"
   },
   "bugs": {
-    "url": "https://github.com/comunica/comunica/issues"
+    "url": "https://github.com/comunica/comunica-feature-link-traversal/issues"
   },
   "keywords": [
     "comunica",
@@ -32,15 +32,15 @@
     "lib/**/*.js.map"
   ],
   "scripts": {
-    "build": "npm run build:ts && npm run build:components",
+    "build": "yarn run build:ts && yarn run build:components",
     "build:ts": "node \"../../node_modules/typescript/bin/tsc\"",
     "build:components": "componentsjs-generator"
   },
   "dependencies": {
-    "@comunica/bus-optimize-query-operation": "^3.0.1",
-    "@comunica/context-entries": "^3.0.1",
-    "@comunica/core": "^3.0.1",
-    "@comunica/types": "^3.0.1",
+    "@comunica/bus-optimize-query-operation": "^3.2.1",
+    "@comunica/context-entries": "^3.2.1",
+    "@comunica/core": "^3.2.1",
+    "@comunica/types": "^3.2.1",
     "sparqlalgebrajs": "^4.2.0"
   }
 }
