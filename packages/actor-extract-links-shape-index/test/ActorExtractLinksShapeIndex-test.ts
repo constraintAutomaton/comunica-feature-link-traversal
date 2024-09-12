@@ -10,12 +10,16 @@ import * as N3 from 'n3';
 import { type IShape, generateQuery, Shape, ContraintType } from 'query-shape-detection';
 import { TYPE_DEFINITION } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
-import { translate } from 'sparqlalgebrajs';
+import { translate, Factory } from 'sparqlalgebrajs';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
 
 // eslint-disable-next-line import/extensions
 import * as SHEX_CONTEXT from './shex-context.json';
 
+const quad = require('rdf-quad');
+const stream = require('streamify-array');
+
+const FACTORY = new Factory();
 const DF = new DataFactory<RDF.BaseQuad>();
 const n3Parser = new N3.Parser();
 
@@ -28,194 +32,124 @@ describe('ActorExtractLinksShapeIndex', () => {
     const cacheShapeIndexIri = false;
 
     describe('test', () => {
-      let context: any = new ActionContext({
-        [KeysInitQuery.query.name]: '',
-      });
+      let input;
+      let operation;
+      let context;
       beforeEach(() => {
-        context = new ActionContext({
-          [KeysInitQuery.query.name]: '',
-        });
         bus = new Bus({ name: 'bus' });
-
+        mediatorDereferenceRdf = <any>{
+          mediate: jest.fn(async() => ({
+            data: new ArrayIterator([], { autoStart: false }),
+          })),
+        };
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
+          cacheShapeIndexIri: false,
         });
+        input = stream([
+          quad('ex:s1', 'ex:px', 'ex:o1', 'ex:gx'),
+          quad('ex:s2', 'ex:p', '"o"', 'ex:g'),
+          quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
+          quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
+          quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
+        ]);
+        operation = FACTORY.createBgp([
+          FACTORY.createPattern(
+            DF.variable('s'),
+            DF.namedNode('ex:p'),
+            DF.variable('o'),
+            DF.namedNode('ex:g'),
+          ),
+        ]);
+        context = new ActionContext({ [KeysInitQuery.query.name]: operation });
+      });
+      it('should test if there is no deactivation map in the context', async() => {
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
+          .resolves.toBe(true);
       });
 
-      it('should not test if the context is empty', async() => {
-        context = new ActionContext({});
-        await expect(actor.test(<any>{ context })).rejects
-          .toThrow('Actor actor can only work in the context of a query.');
+      it('should test if the predicate actor is not in the deactivation map', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+          .resolves.toBe(true);
       });
 
-      it('should not test if there is no header', async() => {
-        await expect(actor.test(<any>{ context })).rejects
-          .toThrow('There should be an header for the resource to be in a Solid pods');
+      it('should not test if the right url is targeted', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
       });
 
-      it('should test header information are missing but the actor is not restricted to Solid', async() => {
-        const headers = new Headers();
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
-          cacheShapeIndexIri,
-          restrictedToSolid: false,
-        });
-        await expect(actor.test(<any>{ context, headers })).resolves.toBe(true);
-      });
-
-      it('should not test if there is an empty header', async() => {
-        const headers = new Headers();
-        await expect(actor.test(<any>{
-          context,
-          headers,
-        })).rejects
-          .toThrow('There should be a link field inside the header for the resource to be in a Solid pods');
-      });
-
-      it('should not test if the header doesn\'t have the link to storage description', async() => {
-        const headers = new Headers(
-          [
-            [ 'Link', 'bar' ],
-            [ 'Link', 'foo' ],
-            [ 'foo', 'boo' ],
-          ],
-        );
-        await expect(actor.test(<any>{
-          context,
-          headers,
-        })).rejects.toThrow(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`);
-      });
-
-      it('should test if the header and a valid context is in the action', async() => {
-        const headers = new Headers(
-          [
-            [ 'Link', 'bar' ],
-            [ 'Link', 'foo' ],
-            [ 'Link', `http://ex.com/bar ;rel=${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}` ],
-          ],
-        );
-        await expect(actor.test(<any>{ context, headers })).resolves.toBe(true);
-      });
-      describe('deactivation', () => {
-        const input: any = undefined;
-
-        beforeEach(() => {
-          context = new ActionContext({
-            [KeysInitQuery.query.name]: '',
-          });
-          bus = new Bus({ name: 'bus' });
-
-          actor = new ActorExtractLinksShapeIndex({
-            name: 'actor',
-            bus,
-            mediatorDereferenceRdf,
-            addIriFromContainerInLinkQueue,
-            cacheShapeIndexIri,
-            restrictedToSolid: false,
-          });
-        });
-        it('should test if there is no deactivation map in the context', async() => {
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
-
-        it('should test if the predicate actor is not in the deactivation map', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
-
-        it('should not test if the right url is targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
-
-        it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+      it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [
               [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
-                ],
+                EVERY_REACHABILITY_CRITERIA,
+                { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
               ],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
+            ],
+          ));
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
+      });
 
-        it('should not test if the right url regex is targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  actor.name,
-                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
+      it('should not test if the right url regex is targeted', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [
+              [ actor.name, { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
+            ],
+          ));
+        await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
+      });
 
-        it(`should not test if the right url regex is targeted 
-        given all the reachability criteria are targeted`, async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+      it(`should not test if the right url regex is targeted 
+      given all the reachability criteria are targeted`, async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [
               [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
-                ],
+                EVERY_REACHABILITY_CRITERIA,
+                { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
               ],
-            ));
-          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
+            ],
+          ));
+        await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
+          .rejects.toThrow('the extractor has been deactivated');
+      });
 
-        it('should test if the right actor is targeted by with the wrong url', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  actor.name,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
+      it('should test if the right actor is targeted by with the wrong url', async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]}]],
+          ));
+        await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+          .resolves.toBe(true);
+      });
 
-        it(`should test if the right actor is targeted by with the wrong url 
-        given all the reachability criteria are targeted`, async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+      it(`should test if the right actor is targeted by with the wrong url 
+      given all the reachability criteria are targeted`, async() => {
+        const context = new ActionContext()
+          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
+            [
               [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
-                ],
+                EVERY_REACHABILITY_CRITERIA,
+                { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
               ],
-            ));
-          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
+            ],
+          ));
+        await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
+          .resolves.toBe(true);
       });
     });
 
@@ -237,9 +171,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
@@ -257,9 +189,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
@@ -281,9 +211,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
@@ -329,9 +257,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
@@ -368,9 +294,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
@@ -392,9 +316,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         jest.restoreAllMocks();
       });
@@ -591,9 +513,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toBeInstanceOf(Error);
@@ -609,9 +529,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.generateShapeIndex(shapeIndexIri, context))
@@ -634,9 +552,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toBeInstanceOf(Error);
@@ -657,9 +573,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.generateShapeIndex(shapeIndexIri, context))
@@ -692,9 +606,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         jest.spyOn(actor, 'getShapeFromIRI')
           .mockImplementation((iri: string, entry: string, _: any) => {
@@ -772,9 +684,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         jest.spyOn(actor, 'getShapeFromIRI')
           .mockImplementation((iri: string, entry: string, _: any) => {
@@ -836,9 +746,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const entries = new Map([
           [
@@ -1041,10 +949,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
-          heuristicClassPriority: true,
           reachabilityToExclude,
         });
 
@@ -1268,9 +1173,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
       });
 
@@ -1352,9 +1255,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toBeInstanceOf(Error);
@@ -1379,9 +1280,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toBeInstanceOf(Error);
@@ -1398,9 +1297,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toStrictEqual([]);
@@ -1429,9 +1326,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toStrictEqual([]);
@@ -1471,16 +1366,16 @@ describe('ActorExtractLinksShapeIndex', () => {
           })),
         };
 
+        const linkPriority = 1;
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
+          linkPriority,
         });
         const expectedIris = iris.map((value) => {
-          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: linkPriority }};
         });
 
         await expect(actor.getResourceIriFromContainer(iri, context)).resolves
@@ -1514,9 +1409,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const filteredResources: any = {
           accepted: [],
@@ -1531,9 +1424,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const accepted = [
           {
@@ -1555,7 +1446,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const expectedIri = accepted.map((value) => {
-          return { url: value.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+          return { url: value.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined }};
         });
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
@@ -1564,13 +1455,13 @@ describe('ActorExtractLinksShapeIndex', () => {
 
       it(`should return iris given the accepted filters contain containers entry 
       but the containers are not available`, async() => {
+        const linkPriority = 33;
         actor = new ActorExtractLinksShapeIndex({
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: true,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
+          linkPriority,
         });
         const accepted = [
           {
@@ -1595,8 +1486,8 @@ describe('ActorExtractLinksShapeIndex', () => {
         spy.mockResolvedValue(new Error('foo'));
 
         const expectedIri = [
-          { url: 'foo', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
-          { url: 'foo2', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+          { url: 'foo', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: linkPriority }},
+          { url: 'foo2', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: linkPriority }},
         ];
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
@@ -1609,9 +1500,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: true,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const accepted = [
           {
@@ -1639,60 +1528,16 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
         spy.mockResolvedValue(new Error('foo'));
         spy.mockResolvedValueOnce([
-          { url: 'foo1', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
-          { url: 'foo10', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}},
+          { url: 'foo1', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined }},
+          { url: 'foo10', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined }},
         ]);
         const expectedIri = [ 'foo', 'foo2', 'foo1', 'foo10' ].map((value) => {
-          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined }};
         });
 
         await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
           .toStrictEqual(expectedIri);
         expect(spy).toHaveBeenCalledTimes(2);
-      });
-      it(`should return iris given the accepted filters with multiple entries
-       and the addIriFromContainerInLinkQueue is set to false`, async() => {
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue: false,
-          cacheShapeIndexIri,
-          restrictedToSolid: true,
-        });
-        const accepted = [
-          {
-            iri: 'foo',
-            isAContainer: false,
-          },
-          {
-            iri: 'foo1',
-            isAContainer: true,
-          },
-          {
-            iri: 'foo1',
-            isAContainer: true,
-          },
-          {
-            iri: 'foo2',
-            isAContainer: false,
-          },
-        ];
-        const filteredResources: any = {
-          accepted,
-          rejected,
-        };
-
-        const spy = jest.spyOn(actor, 'getResourceIriFromContainer');
-        spy.mockRejectedValue(new Error('foo'));
-        spy.mockResolvedValueOnce([{ url: 'foo1' }, { url: 'foo10' }]);
-        const expectedIri = [ 'foo', 'foo2' ].map((value) => {
-          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
-        });
-
-        await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
-          .toStrictEqual(expectedIri);
-        expect(spy).toHaveBeenCalledTimes(0);
       });
     });
 
@@ -1717,9 +1562,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
       });
 
@@ -1858,26 +1701,25 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue(new Error('foo'));
+
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            return translate('SELECT * WHERE { ?x ?o ?z }');
+          }
+          if (KeysFilter.filters) {
+            return undefined;
+          }
+        });
+
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                return translate('SELECT * WHERE { ?x ?o ?z }');
-              }
-              if (key === KeysFilter.filters) {
-                return undefined;
-              }
-              if (key === KeysDeactivateLinkExtractor.deactivate) {
-                return undefined;
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -1890,25 +1732,26 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce('foo');
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
         spyGenerateShapeIndex.mockResolvedValue(new Error('foo'));
+
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            return translate('SELECT * WHERE { ?x ?o ?z }');
+          }
+          if (KeysFilter.filters) {
+            return undefined;
+          }
+        });
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                return translate('SELECT * WHERE { ?x ?o ?z }');
-              }
-              if (KeysFilter.filters) {
-                return undefined;
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -1921,9 +1764,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce('foo');
@@ -1942,17 +1783,19 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spygetResourceIriFromContainer = jest.spyOn(actor, 'getResourceIriFromContainer');
         spygetResourceIriFromContainer.mockResolvedValue(new Error('foo'));
 
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            return translate('SELECT * WHERE { ?x ?o ?z }');
+          }
+          if (KeysFilter.filters) {
+            return new Map([[ 'a', () => true ]]);
+          }
+        });
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                return translate('SELECT * WHERE { ?x ?o ?z }');
-              }
-              if (KeysFilter.filters) {
-                return new Map([[ 'a', () => true ]]);
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -1966,9 +1809,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce('foo');
@@ -1982,17 +1823,20 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
         spyAddIri.mockResolvedValueOnce([{ url: 'foo' }]);
 
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            return translate('SELECT * WHERE { ?x ?o ?z }');
+          }
+          if (KeysFilter.filters) {
+            return undefined;
+          }
+        });
+
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                return translate('SELECT * WHERE { ?x ?o ?z }');
-              }
-              if (KeysFilter.filters) {
-                return undefined;
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -2005,9 +1849,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue('foo');
@@ -2032,21 +1874,25 @@ describe('ActorExtractLinksShapeIndex', () => {
             <http://sujet.cm> <http://predicat.cm> "def" .
             FILTER (year(?x) > 2000)
         }`);
+
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            i += 1;
+            if (i === 1) {
+              return firstQuery;
+            }
+            return secondQuery;
+          }
+          if (KeysFilter.filters) {
+            return undefined;
+          }
+        });
+
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                i += 1;
-                if (i === 1) {
-                  return firstQuery;
-                }
-                return secondQuery;
-              }
-              if (KeysFilter.filters) {
-                return undefined;
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -2064,9 +1910,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri: true,
-          restrictedToSolid: true,
         });
 
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
@@ -2080,17 +1924,20 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const spyAddIri = jest.spyOn(actor, 'getIrisFromAcceptedEntries');
         spyAddIri.mockResolvedValue([{ url: 'foo' }]);
+
+        const getContext = jest.fn((key: any) => {
+          if (key === KeysInitQuery.query) {
+            return translate('SELECT * WHERE { ?x ?o ?z }');
+          }
+          if (KeysFilter.filters) {
+            return actor.getFilters();
+          }
+        });
         const action: any = {
           metadata: jest.fn(),
           context: {
-            get: jest.fn((key: any) => {
-              if (key === KeysInitQuery.query) {
-                return translate('SELECT * WHERE { ?x ?o ?z }');
-              }
-              if (KeysFilter.filters) {
-                return actor.getFilters();
-              }
-            }),
+            getSafe: getContext,
+            get: getContext,
             set: jest.fn().mockReturnThis(),
           },
         };
@@ -2106,9 +1953,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           name: 'actor',
           bus,
           mediatorDereferenceRdf,
-          addIriFromContainerInLinkQueue,
           cacheShapeIndexIri,
-          restrictedToSolid: true,
         });
       });
 

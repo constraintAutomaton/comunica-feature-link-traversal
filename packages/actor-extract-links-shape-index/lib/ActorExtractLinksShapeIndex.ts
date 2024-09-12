@@ -66,8 +66,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   ];
 
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
-  public readonly addIriFromContainerInLinkQueue: boolean;
-  public readonly restrictedToSolid: boolean;
   private filters: Map<string, FilterFunction> = new Map();
   private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
   private readonly reachabilityToExclude: string[];
@@ -76,60 +74,12 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   private readonly cacheShapeIndexIri = true;
   private readonly shapeIndexHandled: Set<string> = new Set();
+  private readonly linkPriority?: number;
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
     this.reachabilityToExclude =
       args.reachabilityToExclude ?? ActorExtractLinksShapeIndex.DEFAULT_REACHABILITY_TO_EXCLUDE;
-  }
-
-  /**
-   * Indicate if the actor should be run.
-   * It will not run if we are not in the context of a query and given the
-   * flag "restrictedToSolid" is activated it will not run if a resource outside
-   * of a Solid pod is evaluated.
-   * @param {IActionExtractLinks} action - the action
-   * @returns {Promise<IActorTest>} Whether the actor should be run
-   */
-  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
-    return new Promise((resolve, reject) => {
-      super.test(action).then(() => {
-        if (action.context.get(KeysInitQuery.query) === undefined) {
-          reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
-          return;
-        }
-
-        if (!this.restrictedToSolid) {
-          resolve(true);
-          return;
-        }
-
-        if (action.headers === undefined) {
-          reject(new Error('There should be an header for the resource to be in a Solid pods'));
-          return;
-        }
-
-        const links = action.headers.get('Link');
-        if (!links) {
-          reject(new Error('There should be a link field inside the header for the resource to be in a Solid pods'));
-          return;
-        }
-
-        const entries = links.split(',')
-          .map(value => value.trimStart());
-
-        for (const entry of entries) {
-          if (entry.includes(ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION)) {
-            resolve(true);
-            return;
-          }
-        }
-
-        reject(new Error(`There should be a "${ActorExtractLinksShapeIndex.STORAGE_DESCRIPTION}" inside the Link field header for the resource to be in a Solid pods`));
-      }, (reason: Error) => {
-        reject(reason);
-      });
-    });
   }
 
   /**
@@ -163,7 +113,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     if (linkExtractorDeactivationMap === undefined) {
       action.context = action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
     }
-    this.linkDeactivationMap = action.context.get(KeysDeactivateLinkExtractor.deactivate)!;
+    this.linkDeactivationMap = action.context.getSafe(KeysDeactivateLinkExtractor.deactivate);
 
     this.filters = filters;
     if (this.filters.size === 0) {
@@ -260,10 +210,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     let links: ILink[] = [];
     const promises: Promise<ILink[] | Error>[] = [];
     for (const indexEntry of filteredResources.accepted) {
-      if (!indexEntry.isAContainer) {
-        links.push({ url: indexEntry.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }}});
-      } else if (this.addIriFromContainerInLinkQueue) {
+      if (indexEntry.isAContainer) {
         promises.push(this.getResourceIriFromContainer(indexEntry.iri, context));
+      } else {
+        links.push({
+          url: indexEntry.iri,
+          metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }, priority: this.linkPriority },
+        });
       }
     }
     const irisFromContainers = await Promise.all(promises);
@@ -290,7 +243,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
             if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE)) {
               links.push({
                 url: quad.object.value,
-                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }},
+                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }, priority: this.linkPriority },
               });
             }
           });
@@ -603,27 +556,18 @@ export interface IActorExtractLinksShapeIndexArgs
    */
   mediatorDereferenceRdf: MediatorDereferenceRdf;
   /**
-   * When the target of shape index is a container fetch the container to add
-   * the IRI to the link queue
-   */
-  addIriFromContainerInLinkQueue: boolean;
-  /**
    * Cache the shape index iri. If a document a shape index IRI is discovered subsequent time the
    * engine will not dereference it.
    */
   cacheShapeIndexIri: boolean;
   /**
-   * Don't execute the actor if the document is not in a Solid pod.
-   */
-  restrictedToSolid: boolean;
-  /**
-   * Consider the strong alignment between the shape and the query.
-   */
-  heuristicClassPriority?: boolean;
-  /**
    * Reachability to exclude on a priori knowledge of the domain
    */
   reachabilityToExclude?: string[];
+  /**
+   * Priority on the link discovered from the index
+   */
+  linkPriority?: number;
 }
 
 /**
