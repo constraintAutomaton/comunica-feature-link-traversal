@@ -31,7 +31,13 @@ export class QuerySourceReasoning implements IQuerySource {
 
   private readonly engineContext: any;
 
-  public constructor(innerSource: IQuerySource, sourceId: string, implicitQuadStore: RDF.Store, queryEngine: QueryEngineBase, rules: any) {
+  public constructor(
+    innerSource: IQuerySource,
+    sourceId: string,
+    implicitQuadStore: RDF.Store,
+    queryEngine: QueryEngineBase,
+    rules: any,
+  ) {
     this.innerSource = innerSource;
     this.sourceId = sourceId;
     this.implicitQuadStore = implicitQuadStore;
@@ -77,7 +83,7 @@ export class QuerySourceReasoning implements IQuerySource {
     throw new Error('queryVoid is not implemented in QuerySourceReasoning');
   }
 
-  get referenceValue(): string | RDF.Source {
+  public get referenceValue(): string | RDF.Source {
     return this.innerSource.referenceValue;
   }
 
