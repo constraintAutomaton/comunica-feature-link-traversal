@@ -1,3 +1,4 @@
+import type { ScopedRules } from '@comunica/actor-context-preprocess-query-source-reasoning';
 import { ActionContextKey } from '@comunica/core';
 import type { IDataDestination } from '@comunica/types';
 import type { AnnotateSourcesType } from '@comunica/types-link-traversal';
@@ -32,4 +33,12 @@ export const KeysRdfJoin = {
    * If adaptive joining must not be done.
    */
   skipAdaptiveJoin: new ActionContextKey<IDataDestination>('@comunica/bus-rdf-join:skipAdaptiveJoin'),
+};
+
+export const KeyReasoning = {
+  /**
+   * The rules to apply with their data source domain in the form of a URI template or of an RDF source.
+   * 
+   */
+  rules: new ActionContextKey<ScopedRules>('@comunica/actor-context-preprocess-query-source-reasoning:rules'),
 };
