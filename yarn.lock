@@ -4455,6 +4455,16 @@
     asynciterator "^3.9.0"
     sparqlalgebrajs "^4.3.7"
 
+"@comunica/types@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@comunica/types/-/types-3.3.0.tgz#b3288314ee511bc3c8889f4d1f2f0aa04df7a138"
+  integrity sha512-Z6RtAzvcUvBzIyG5lzMWfGF9ODIJQ2SETA8dW6MWMmttJgYe6xRpUjTKzvhnEs3vcleDD5AutL7tZ7vx50NELg==
+  dependencies:
+    "@rdfjs/types" "*"
+    "@types/yargs" "^17.0.24"
+    asynciterator "^3.9.0"
+    sparqlalgebrajs "^4.3.7"
+
 "@dabh/diagnostics@^2.0.2":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@dabh/diagnostics/-/diagnostics-2.0.3.tgz#7f7e97ee9a725dffc7808d93668cc984e1dc477a"
@@ -5392,6 +5402,13 @@
   dependencies:
     "@types/node" "*"
 
+"@rdfjs/types@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@rdfjs/types/-/types-1.1.2.tgz#9c2f9848c44c26d383bed2a808571de3b93b808d"
+  integrity sha512-wqpOJK1QCbmsGNtyzYnojPU8gRDPid2JO0Q0kMtb4j65xhCK880cnKAfEOwC+dX85VJcCByQx5zOwyyfCjDJsg==
+  dependencies:
+    "@types/node" "*"
+
 "@rubensworks/eslint-config@^3.0.0":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@rubensworks/eslint-config/-/eslint-config-3.0.0.tgz#c21c49114e068785eeb4bda766bcc4c60fd0e861"
@@ -5788,6 +5805,11 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.5.tgz#a6ce3e556e00fd9895dd872dd172ad0d4bd687f4"
   integrity sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==
 
+"@types/events@^3.0.3":
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/@types/events/-/events-3.0.3.tgz#a8ef894305af28d1fc6d2dfdfc98e899591ea529"
+  integrity sha512-trOc4AAUThEz9hapPtSd7wf5tiQKvTtu5b371UxXdTuqzIh0ArcRspRP0i0Viu+LXstIQ1z96t1nsPxT9ol01g==
+
 "@types/form-data@0.0.33":
   version "0.0.33"
   resolved "https://registry.yarnpkg.com/@types/form-data/-/form-data-0.0.33.tgz#c9ac85b2a5fd18435b8c85d9ecb50e6d6c893ff8"
@@ -6010,6 +6032,11 @@
   version "2.0.10"
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-2.0.10.tgz#04ffa7f406ab628f7f7e97ca23e290cd8ab15efc"
   integrity sha512-IfYcSBWE3hLpBg8+X2SEa8LVkJdJEkT2Ese2aaLs3ptGdVtABxndrMaxuFlQ1qdFf9Q5rDvDpxI3WwgvKFAsQA==
+
+"@types/uri-template-lite@^19.12.0":
+  version "19.12.3"
+  resolved "https://registry.yarnpkg.com/@types/uri-template-lite/-/uri-template-lite-19.12.3.tgz#36bda410214be21d3f09ff3c6269ce6a7249711e"
+  integrity sha512-mjH2JBlIz+0WPtS+E3Itl8kicr+DqHCKfBSPVNyJyC800dNbvTpdsR2WdJJSIYF+WVKinfYz/l0kJ0JWfuimJg==
 
 "@types/uritemplate@^0.3.4":
   version "0.3.6"
@@ -13236,7 +13263,7 @@ rdf-stores@^1.0.0:
     rdf-string "^1.6.2"
     rdf-terms "^1.9.1"
 
-rdf-streaming-store@^1.1.4:
+rdf-streaming-store@^1.1.4, rdf-streaming-store@^1.1.5:
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/rdf-streaming-store/-/rdf-streaming-store-1.1.5.tgz#64f1cbb570ebdd532b9f3e7742d62f106e97cb5b"
   integrity sha512-Rfd3qo1otF/Jfau/lAFX8J1ZPorN0eaHoIkAlenIIcdZjq9AoIP85rEa4Sn+yMZOqNU1Kc4cCPUv5CFHhpAT2Q==
@@ -15030,6 +15057,11 @@ uri-js@^4.2.2, uri-js@^4.4.1:
   integrity sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==
   dependencies:
     punycode "^2.1.0"
+
+uri-template-lite@^23.4.0:
+  version "23.4.0"
+  resolved "https://registry.yarnpkg.com/uri-template-lite/-/uri-template-lite-23.4.0.tgz#989158b76dba91dafbb2d558153f5359d0b04f48"
+  integrity sha512-JsAjquFMpSyZRWAUQguhHIRuh4jb/xDhwQyb1/7C42YLJgkc5WoBF3UkRRM1QtL6Vr9xBa9fB7q3xPzXRwvuUA==
 
 uritemplate@0.3.4:
   version "0.3.4"

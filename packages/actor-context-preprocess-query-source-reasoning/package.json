@@ -37,10 +37,23 @@
     "build:components": "componentsjs-generator"
   },
   "dependencies": {
+    "@comunica/actor-context-preprocess-query-source-skolemize": "^3.2.1",
+    "@comunica/actor-init-query": "^3.2.1",
     "@comunica/bus-context-preprocess": "^3.2.1",
     "@comunica/context-entries": "^3.2.1",
     "@comunica/context-entries-link-traversal": "^0.5.0",
     "@comunica/core": "^3.2.1",
-    "asynciterator": "^3.9.0"
+    "@comunica/types": "^3.3.0",
+    "asynciterator": "^3.9.0",
+    "events": "^3.3.0",
+    "rdf-data-factory": "^1.1.2",
+    "rdf-streaming-store": "^1.1.5",
+    "sparqlalgebrajs": "^4.3.8",
+    "uri-template-lite": "^23.4.0"
+  },
+  "devDependencies": {
+    "@rdfjs/types": "^1.1.2",
+    "@types/events": "^3.0.3",
+    "@types/uri-template-lite": "^19.12.0"
   }
 }
