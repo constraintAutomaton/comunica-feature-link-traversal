@@ -64,6 +64,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   private readonly cacheShapeIndexIri = true;
   private readonly shapeIndexHandled: Set<string> = new Set();
   private readonly linkPriority?: number;
+  private readonly linkProduced: Set<string> = new Set();
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
@@ -137,6 +138,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
     this.addRejectedEntryFilters(filteredResource);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
+    for (const link of links) {
+      this.linkProduced.add(link.url);
+    }
     return { links };
   }
 
@@ -322,6 +326,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         this.filters.set(`${shapeIndex.domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
           const metadata = link.metadata;
           if (metadata !== undefined && metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
+            return false;
+          }
+
+          if (this.linkProduced.has(link.url)) {
             return false;
           }
           const isInDomain = shapeIndex.domain.test(link.url);

@@ -27,11 +27,8 @@ export class LinkQueueFilterLinks extends LinkQueueWrapper {
       }
     }
     const hasBeenPushed = super.push(link, parent);
-    if (hasBeenPushed) {
-      if (this.calculateSize) {
-        this.internalLinkSet.add(link);
-      }
-      return hasBeenPushed;
+    if (hasBeenPushed && this.calculateSize) {
+      this.internalLinkSet.add(link);
     }
     return hasBeenPushed;
   }
