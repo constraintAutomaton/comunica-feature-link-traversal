@@ -7,8 +7,7 @@ import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
-import { type IShape, generateQuery, Shape, ContraintType } from 'query-shape-detection';
-import { TYPE_DEFINITION } from 'query-shape-detection';
+import { type IShape, generateQuery, Shape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 import { translate, Factory } from 'sparqlalgebrajs';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
@@ -942,226 +941,209 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should deactivate the chosen reachability criteria for multiple storages', () => {
-        const reachabilityToExclude = [ 'foo', 'bar', 'too' ];
-        actor = new ActorExtractLinksShapeIndex({
-          name: 'actor',
-          bus,
-          mediatorDereferenceRdf,
-          cacheShapeIndexIri,
-          reachabilityToExclude,
+      describe(' A priori knowledge of the search domain', () => {
+        it('should generate a filter over the domain given a complete shape index', () => {
+          const entries = new Map([
+            [
+              'foo',
+              {
+                isAContainer: true,
+                iri: 'foo',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo',
+                  positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+            [
+              'foo1',
+              {
+                isAContainer: true,
+                iri: 'foo1',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo1',
+                  positivePredicates: [ 'http://exemple.ca/3', 'http://exemple.ca/2' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+            [
+              'foo2',
+              {
+
+                isAContainer: true,
+                iri: 'foo2',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo2',
+                  positivePredicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+          ]);
+
+          const shapeIndex = {
+            entries,
+            domain,
+            isComplete: true,
+          };
+
+          const query = translate('SELECT * WHERE { ?x ?o ?z }');
+          (<any>actor).query = generateQuery(query);
+
+          const expectedFilteredResource = {
+            accepted: [
+              {
+                isAContainer: true,
+                iri: 'foo',
+              },
+              {
+                isAContainer: true,
+                iri: 'foo1',
+              },
+              {
+
+                isAContainer: true,
+                iri: 'foo2',
+
+              },
+            ],
+            rejected: [],
+          };
+
+          const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+          expect(resp).toStrictEqual(expectedFilteredResource);
+          expect((<any>actor).filters.size).toBe(1);
+          expect((<any>actor).filters.has(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
+          const filter = (<any>actor).filters.get(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
+
+          const linkOutsideDomain = { url: 'foo' };
+          expect(filter(linkOutsideDomain)).toBe(false);
+
+          const linkInDomain = { url: 'http://localhost:3000/pods/00000000000000000065/asdasd/dasdad.json' };
+          expect(filter(linkInDomain)).toBe(true);
+
+          const linkInDomainProducedByShapeIndex = {
+            url: 'http://localhost:3000/pods/00000000000000000065/asdasd/dasdad.json',
+            metadata: {
+              producedByActor: {
+                name: actor.name,
+              },
+            },
+          };
+          expect(filter(linkInDomainProducedByShapeIndex)).toBe(false);
         });
 
-        const entries = new Map([
-          [
-            'foo',
-            {
-              isAContainer: true,
-              iri: 'foo',
-              shape: new Shape({
-                closed: true,
-                name: 'foo',
-                positivePredicates: [
-                  {
-                    name: TYPE_DEFINITION.value,
-                    constraint: {
-                      value: new Set([ 'http://exemple.ca/Foo' ]),
-                      type: ContraintType.TYPE,
-                    },
-                  },
-                  'http://exemple.ca/2',
-                ],
-              }),
+        it('should generate a filter an incomplete shape index when the query is fully contained', () => {
+          const entries = new Map([
+            [
+              'foo',
+              {
+                isAContainer: true,
+                iri: 'foo',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo',
+                  positivePredicates: [ 'http://exemple.ca/1', 'http://exemple.ca/2' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+            [
+              'foo1',
+              {
+                isAContainer: true,
+                iri: 'foo1',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo1',
+                  positivePredicates: [ 'http://exemple.ca/3', 'http://exemple.ca/7' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+            [
+              'foo2',
+              {
+
+                isAContainer: true,
+                iri: 'foo2',
+                shape: new Shape({
+                  closed: true,
+                  name: 'foo2',
+                  positivePredicates: [ 'http://exemple.ca/4', 'http://exemple.ca/5' ],
+                  negativePredicates: [],
+                }),
+              },
+            ],
+          ]);
+
+          const shapeIndex = {
+            entries,
+            domain,
+            isComplete: false,
+          };
+
+          const query = translate(`SELECT * WHERE { 
+            ?x <http://exemple.ca/7> ?z .
+            ?w <http://exemple.ca/4> <http://objet.fr> .
+            FILTER (year(?x) > 2000)
+        }`);
+          (<any>actor).query = generateQuery(query);
+
+          const expectedFilteredResource = {
+            accepted: [
+              {
+
+                isAContainer: true,
+                iri: 'foo1',
+
+              },
+              {
+                isAContainer: true,
+                iri: 'foo2',
+              },
+            ],
+            rejected: [
+              {
+                isAContainer: true,
+                iri: 'foo',
+              },
+            ],
+          };
+
+          const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+          // We just want to compare unordered arrays
+          // eslint-disable-next-line ts/require-array-sort-compare
+          expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
+          // We just want to compare unordered arrays
+          // eslint-disable-next-line ts/require-array-sort-compare
+          expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
+
+          expect((<any>actor).filters.size).toBe(1);
+          expect((<any>actor).filters.has(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
+          const filter = (<any>actor).filters.get(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
+
+          const linkOutsideDomain = { url: 'foo' };
+          expect(filter(linkOutsideDomain)).toBe(false);
+
+          const linkInDomain = { url: 'http://localhost:3000/pods/00000000000000000065/asdasd/dasdad.json' };
+          expect(filter(linkInDomain)).toBe(true);
+
+          const linkInDomainProducedByShapeIndex = {
+            url: 'http://localhost:3000/pods/00000000000000000065/asdasd/dasdad.json',
+            metadata: {
+              producedByActor: {
+                name: actor.name,
+              },
             },
-          ],
-          [
-            'foo1',
-            {
-              isAContainer: true,
-              iri: 'foo1',
-              shape: new Shape({
-                closed: true,
-                name: 'foo1',
-                positivePredicates: [
-                  {
-                    name: TYPE_DEFINITION.value,
-                    constraint: {
-                      value: new Set([ 'http://exemple.ca/Bar' ]),
-                      type: ContraintType.TYPE,
-                    },
-                  },
-                  'http://exemple.ca/2',
-                ],
-              }),
-            },
-          ],
-        ]);
-
-        shapeIndex = {
-          ...shapeIndex,
-          entries,
-        };
-
-        const query = translate(`SELECT * WHERE { 
-          ?x ?o ?z .
-          ?x a <http://exemple.ca/Foo> .
-          ?y a <http://exemple.ca/Bar>.
-          FILTER (year(?x) > 2000)
-      }`);
-
-        (<any>actor).query = generateQuery(query);
-        (<any>actor).linkDeactivationMap = new Map();
-        (<any>actor).filters = new Map();
-
-        const expectedFilteredResource = {
-          accepted: [
-            {
-              isAContainer: true,
-              iri: 'foo',
-            },
-            {
-              isAContainer: true,
-              iri: 'foo1',
-            },
-          ],
-          rejected: [],
-        };
-        const expectedDeactivationMap = new Map(
-          reachabilityToExclude
-            .map(reachability => [
-              reachability,
-              { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain ]) },
-            ]),
-        );
-
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
-
-        expect(resp).toStrictEqual(expectedFilteredResource);
-        expect(actor.getLinkDeactivatedMap()).toStrictEqual(expectedDeactivationMap);
-        expect(actor.getFilters().size).toBe(1);
-        const reTestLinks: [any, boolean][] = [
-          [{ url: '' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/test' }, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}}, true ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, true ],
-
-          [{ url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}}, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}}, true ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: '??' }}}, false ],
-          [{ url: 'http://localhost:3000/pods/00000000000000000065/abce.com', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}, false ],
-        ];
-
-        for (const [ link, expected ] of reTestLinks) {
-          for (const [ _, filterFunction ] of actor.getFilters()) {
-            const filtered = filterFunction(link);
-            expect(filtered).toBe(expected);
-          }
-        }
-
-        const newDomain = /http:\/\/localhost:3000\/pods\/007\/.*/u;
-
-        const newShapeIndex = {
-          domain: newDomain,
-          entries,
-          isComplete: false,
-        };
-        const reResp = actor.filterResourcesFromShapeIndex(newShapeIndex);
-
-        const reExpectedDeactivationMap = new Map(
-          reachabilityToExclude
-            .map(reachability => [
-              reachability,
-              { actorParam: new Map(), urls: new Set(), urlPatterns: new Set([ domain, newDomain ]) },
-            ]),
-        );
-
-        expect(reResp).toStrictEqual(expectedFilteredResource);
-        expect(actor.getLinkDeactivatedMap()).toStrictEqual(reExpectedDeactivationMap);
-        expect(actor.getFilters().size).toBe(2);
-        const testLinks: [any, Record<string, boolean>][] = [
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-          [
-            { url: '' },
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065' },
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-
-          ],
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065/test' },
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000064/test', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-          [
-            { url: 'http://localhost:3000/pods/00000000000000000065/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'too' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-            },
-          ],
-
-          [
-            { url: 'http://localhost:3000/pods/007/', metadata: { [PRODUCED_BY_ACTOR]: { name: 'foo' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-            },
-
-          ],
-          [
-            { url: 'http://localhost:3000/pods/007/bar', metadata: { [PRODUCED_BY_ACTOR]: { name: 'bar' }}},
-            {
-              [`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: false,
-              [`${newDomain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`]: true,
-            },
-          ],
-        ];
-
-        for (const [ link, expected ] of testLinks) {
-          for (const [ key, filterFunction ] of actor.getFilters()) {
-            let filtered = filterFunction(link);
-            const expectedFilteredValue = expected[key];
-            expect(filtered).toBe(expectedFilteredValue);
-            if (link.metadata !== undefined) {
-              const linkProducedByShapeIndex = { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
-              filtered = filterFunction(linkProducedByShapeIndex);
-            }
-            expect(filtered).toBe(false);
-          }
-        }
+          };
+          expect(filter(linkInDomainProducedByShapeIndex)).toBe(false);
+        });
       });
     });
 

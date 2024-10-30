@@ -54,21 +54,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public static readonly STORAGE_DESCRIPTION = 'http://www.w3.org/ns/solid/terms#storageDescription';
 
-  public static readonly ADAPTATIVE_REACHABILITY_LABEL = 'reachability_criteria';
-
-  public static readonly DEFAULT_REACHABILITY_TO_EXCLUDE = [
-    'urn:comunica:default:extract-links/actors#links-describedby',
-    'urn:comunica:default:extract-links/actors#predicates-common',
-    'urn:comunica:default:extract-links/actors#predicates-ldp',
-    'urn:comunica:default:extract-links/actors#predicates-solid',
-    'urn:comunica:default:extract-links/actors#solid-type-index',
-    'urn:comunica:default:extract-links/actors#all',
-  ];
+  public static readonly ADAPTATIVE_REACHABILITY_LABEL = 'exclude_domain';
 
   public readonly mediatorDereferenceRdf: MediatorDereferenceRdf;
   private filters: Map<string, FilterFunction> = new Map();
-  private linkDeactivationMap: Map<string, IActorExtractDescription> = new Map();
-  private readonly reachabilityToExclude: string[];
 
   private query?: IQuery = undefined;
 
@@ -78,8 +67,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
   public constructor(args: IActorExtractLinksShapeIndexArgs) {
     super(args);
-    this.reachabilityToExclude =
-      args.reachabilityToExclude ?? ActorExtractLinksShapeIndex.DEFAULT_REACHABILITY_TO_EXCLUDE;
   }
 
   /**
@@ -117,7 +104,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     if (linkExtractorDeactivationMap === undefined) {
       action.context = action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
     }
-    this.linkDeactivationMap = action.context.getSafe(KeysDeactivateLinkExtractor.deactivate);
 
     this.filters = filters;
     if (this.filters.size === 0) {
@@ -160,14 +146,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    */
   public getFilters(): Map<string, FilterFunction> {
     return new Map(this.filters);
-  }
-
-  /**
-   * Get the current map of the actor that should be deactivated
-   * @returns {Map<string, IActorExtractDescription>} A deep copy of the deactivation map
-   */
-  public getLinkDeactivatedMap(): Map<string, IActorExtractDescription> {
-    return new Map(this.linkDeactivationMap);
   }
 
   /**
@@ -319,6 +297,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         if (result.result === ContainmentResult.ALIGNED || result.result === ContainmentResult.REJECTED) {
           fullyContained = false;
         }
+        // If we depend on a star pattern but we don't know what is the shape of the dependency
+        // or the shape is not in the domain
         if (result.result === ContainmentResult.DEPEND && result.target === undefined) {
           fullyContained = false;
         }
@@ -329,6 +309,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       }
 
       for (const entry of shapeIndex.entries.values()) {
+        // We reject the entry if the star pattern is an IRI because we already know the location of the data
         if ((mapResult.get(entry.shape.name) ?? false) || mapResult.size === 0) {
           resp.accepted.push({ iri: entry.iri, isAContainer: entry.isAContainer });
         } else {
@@ -338,37 +319,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
 
       // If we know the domain then we can restrict the domain
       if (this.aprioriKnowledgeOftheSearchDomain(fullyContained, shapeIndex.isComplete)) {
-        for (const reachabilityCriteria of this.reachabilityToExclude) {
-          const currentIndex = this.linkDeactivationMap.get(reachabilityCriteria);
-          if (currentIndex === undefined) {
-            this.linkDeactivationMap.set(reachabilityCriteria, {
-              actorParam: new Map(),
-              urlPatterns: new Set([ shapeIndex.domain ]),
-              urls: new Set(),
-            });
-          } else {
-            currentIndex.urlPatterns.add(shapeIndex.domain);
-          }
-        }
         this.filters.set(`${shapeIndex.domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
           const metadata = link.metadata;
-          if (metadata === undefined) {
-            return false;
-          }
-          if (metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
+          if (metadata !== undefined && metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
             return false;
           }
           const isInDomain = shapeIndex.domain.test(link.url);
-          if (!isInDomain) {
-            return false;
-          }
-
-          for (const reachabilityCriteria of this.reachabilityToExclude) {
-            if (metadata[PRODUCED_BY_ACTOR]?.name === reachabilityCriteria) {
-              return true;
-            }
-          }
-          return false;
+          return isInDomain;
         });
       }
     }
@@ -564,10 +521,6 @@ export interface IActorExtractLinksShapeIndexArgs
    * engine will not dereference it.
    */
   cacheShapeIndexIri: boolean;
-  /**
-   * Reachability to exclude on a priori knowledge of the domain
-   */
-  reachabilityToExclude?: string[];
   /**
    * Priority on the link discovered from the index
    */

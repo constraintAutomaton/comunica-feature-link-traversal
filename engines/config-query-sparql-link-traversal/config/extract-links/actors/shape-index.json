@@ -11,9 +11,7 @@
       "@id": "urn:comunica:default:extract-links/actors#solid-shape-index",
       "@type": "ActorExtractLinksShapeIndex",
       "mediatorDereferenceRdf": { "@id": "urn:comunica:default:dereference-rdf/mediators#main" },
-      "addIriFromContainerInLinkQueue": true,
-      "cacheShapeIndexIri": true,
-      "restrictedToSolid": false
+      "cacheShapeIndexIri": true
     }
   ]
 }
