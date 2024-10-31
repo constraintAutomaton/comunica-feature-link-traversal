@@ -134,7 +134,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       };
     }
 
-    const filteredResource = this.filterResourcesFromShapeIndex(shapeIndex);
+    const filteredResource = await this.filterResourcesFromShapeIndex(shapeIndex, action.context);
 
     this.addRejectedEntryFilters(filteredResource);
     const links = await this.getIrisFromAcceptedEntries(filteredResource, action.context);
@@ -282,13 +282,16 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IShapeIndex} shapeIndex - The shape index
    * @returns {IFilteredIndexEntries} An object dividing the align and non-align resource IRIs
    */
-  public filterResourcesFromShapeIndex(shapeIndex: IShapeIndex): IFilteredIndexEntries {
+  public async filterResourcesFromShapeIndex(
+    shapeIndex: IShapeIndex,
+    context: IActionContext,
+  ): Promise<IFilteredIndexEntries> {
     const resp: IFilteredIndexEntries = {
       accepted: [],
       rejected: [],
     };
     if (this.query !== undefined) {
-      const shapes = ActorExtractLinksShapeIndex.getShapesFromShapeIndex(shapeIndex);
+      const shapes = await this.getShapesFromShapeIndex(shapeIndex, context);
 
       const resultsReport: IResult = solveShapeQueryContainment({
         query: this.query,
@@ -509,12 +512,31 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IShapeIndex} shapeIndex
    * @returns {IShape[]} the shape from the index
    */
-  private static getShapesFromShapeIndex(shapeIndex: IShapeIndex): IShape[] {
-    const shapes: IShape[] = [];
+  private async getShapesFromShapeIndex(shapeIndex: IShapeIndex, context: IActionContext): Promise<IShape[]> {
+    const shapes: Map<string, IShape> = new Map();
+    const getShapeOperations = [];
     for (const entry of shapeIndex.entries.values()) {
-      shapes.push(entry.shape);
+      const linkedShapesIri = entry.shape.getLinkedShapeIri();
+      for (const iri of linkedShapesIri) {
+        getShapeOperations.push(this.getShapeFromIRI(iri, iri, context));
+      }
+      shapes.set(entry.shape.name, entry.shape);
     }
-    return shapes;
+    for (const entry of shapeIndex.entries.values()) {
+      const linkedShapesIri = entry.shape.getLinkedShapeIri();
+      for (const iri of linkedShapesIri) {
+        if (!shapes.has(iri)) {
+          getShapeOperations.push(this.getShapeFromIRI(iri, iri, context));
+        }
+      }
+    }
+    const dependentShapes = await Promise.all(getShapeOperations);
+    for (const shape of dependentShapes) {
+      if (!(shape instanceof Error)) {
+        shapes.set(shape[0].name, shape[0]);
+      }
+    }
+    return [ ...shapes.values() ];
   }
 }
 

@@ -736,6 +736,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
     describe('filterResourcesFromShapeIndex', () => {
       let shapeIndex: any = {};
+      const context: any = {};
       const domain = /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u;
 
       beforeEach(() => {
@@ -746,6 +747,16 @@ describe('ActorExtractLinksShapeIndex', () => {
           mediatorDereferenceRdf,
           cacheShapeIndexIri,
         });
+
+        jest.spyOn(actor, 'getShapeFromIRI').mockResolvedValue(
+          [ new Shape({
+            closed: true,
+            name: 'linked',
+            positivePredicates: [ 'http://exemple.ca/linked1', 'http://exemple.ca/linked2' ],
+            negativePredicates: [],
+          }), 'linked' ],
+        );
+
         const entries = new Map([
           [
             'foo',
@@ -797,7 +808,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.restoreAllMocks();
       });
 
-      it('should return an empty filtered resources object given an empty shape index', () => {
+      it('should return an empty filtered resources object given an empty shape index', async() => {
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
           ?x <http://exemple.ca/1> ?z .
@@ -817,11 +828,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           rejected: [],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should return an empty filtered resources object given a query targeting no properties', () => {
+      it('should return an empty filtered resources object given a query targeting no properties', async() => {
         const query = translate('SELECT * WHERE { ?x ?o ?z }');
         (<any>actor).query = generateQuery(query);
 
@@ -845,11 +856,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           rejected: [],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
-      it('should return the correct filtered resources object given a query multiple properties', () => {
+      it('should return the correct filtered resources object given a query multiple properties', async() => {
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
           ?x <http://exemple.ca/1> ?z .
@@ -881,7 +892,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           ],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
         // We just want to compare unordered arrays
         // eslint-disable-next-line ts/require-array-sort-compare
         expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
@@ -890,7 +901,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
       });
 
-      it('should ignore star pattern with names', () => {
+      it('should ignore star pattern with names', async() => {
         const query = translate(`SELECT * WHERE { 
           ?x ?o ?z .
           <http://exemple.ca/Named> <http://exemple.ca/1> ?z .
@@ -922,7 +933,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           ],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
         // We just want to compare unordered arrays
         // eslint-disable-next-line ts/require-array-sort-compare
         expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
@@ -931,18 +942,18 @@ describe('ActorExtractLinksShapeIndex', () => {
         expect(resp.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
       });
 
-      it('should return an empty filter ressource result given an undefined query', () => {
+      it('should return an empty filter ressource result given an undefined query', async() => {
         const expectedFilteredResource = {
           accepted: [],
           rejected: [],
         };
 
-        const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+        const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
         expect(resp).toStrictEqual(expectedFilteredResource);
       });
 
       describe(' A priori knowledge of the search domain', () => {
-        it('should generate a filter over the domain given a complete shape index', () => {
+        it('should generate a filter over the domain given a complete shape index', async() => {
           const entries = new Map([
             [
               'foo',
@@ -1015,7 +1026,7 @@ describe('ActorExtractLinksShapeIndex', () => {
             rejected: [],
           };
 
-          const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+          const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
           expect(resp).toStrictEqual(expectedFilteredResource);
           expect((<any>actor).filters.size).toBe(1);
           expect((<any>actor).filters.has(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
@@ -1038,7 +1049,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           expect(filter(linkInDomainProducedByShapeIndex)).toBe(false);
         });
 
-        it('should generate a filter an incomplete shape index when the query is fully contained', () => {
+        it('should generate a filter an incomplete shape index when the query is fully contained', async() => {
           const entries = new Map([
             [
               'foo',
@@ -1116,7 +1127,7 @@ describe('ActorExtractLinksShapeIndex', () => {
             ],
           };
 
-          const resp = actor.filterResourcesFromShapeIndex(shapeIndex);
+          const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
           // We just want to compare unordered arrays
           // eslint-disable-next-line ts/require-array-sort-compare
           expect(resp.accepted.sort()).toStrictEqual(expectedFilteredResource.accepted.sort());
