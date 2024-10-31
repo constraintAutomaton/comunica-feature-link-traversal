@@ -6,10 +6,10 @@ import type {
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import { KeysInitQuery } from '@comunica/context-entries';
-import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entries-link-traversal';
+import { KeysFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, IActorArgs } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
-import type { FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
+import type { FilterFunction } from '@comunica/types-link-traversal';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import {
@@ -98,12 +98,6 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       try {
         this.query = generateQuery(query);
       } catch {}
-    }
-
-    const linkExtractorDeactivationMap: Map<string, IActorExtractDescription> | undefined =
-      action.context.get(KeysDeactivateLinkExtractor.deactivate);
-    if (linkExtractorDeactivationMap === undefined) {
-      action.context = action.context.set(KeysDeactivateLinkExtractor.deactivate, new Map());
     }
 
     this.filters = filters;
