@@ -14,7 +14,7 @@ describe('LinkQueueFilterLinks', () => {
   const query = 'SELECT * {?s ?p ?o}';
   const logger: any = {
     warn: jest.fn(),
-    trace: jest.fn(),
+    info: jest.fn(),
   };
 
   describe('constructor', () => {
@@ -65,7 +65,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(true);
 
-      expect(logger.trace).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledTimes(1);
       const expectedEvent = {
         type: 'push',
         link: {
@@ -88,8 +88,8 @@ describe('LinkQueueFilterLinks', () => {
         },
       };
 
-      expect(logger.trace.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
-      expect(logger.trace.mock.calls[0][1].data).toStrictEqual(expectedEvent);
+      expect(logger.info.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
+      expect(logger.info.mock.calls[0][1].data).toStrictEqual(expectedEvent);
     });
 
     it('should log the event of a new link without reachability annotation pushed to the queue', () => {
@@ -122,7 +122,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(true);
 
-      expect(logger.trace).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledTimes(1);
       const expectedEvent = {
         type: 'push',
         link: {
@@ -140,8 +140,8 @@ describe('LinkQueueFilterLinks', () => {
         },
       };
 
-      expect(logger.trace.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
-      expect(logger.trace.mock.calls[0][1].data).toStrictEqual(expectedEvent);
+      expect(logger.info.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
+      expect(logger.info.mock.calls[0][1].data).toStrictEqual(expectedEvent);
     });
 
     it(`should log the event of a new link without reachability annotation 
@@ -180,7 +180,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(true);
 
-      expect(logger.trace).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledTimes(1);
       const expectedEvent = {
         type: 'push',
         link: {
@@ -197,8 +197,8 @@ describe('LinkQueueFilterLinks', () => {
         },
       };
 
-      expect(logger.trace.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
-      expect(logger.trace.mock.calls[0][1].data).toStrictEqual(expectedEvent);
+      expect(logger.info.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
+      expect(logger.info.mock.calls[0][1].data).toStrictEqual(expectedEvent);
     });
 
     it('should not push to the history to a file if a new link not successfuly pushed', () => {
@@ -224,7 +224,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(false);
 
-      expect(logger.trace).not.toHaveBeenCalled();
+      expect(logger.info).not.toHaveBeenCalled();
     });
 
     it('should push the history adequatly with multiple push events', () => {
@@ -320,13 +320,13 @@ describe('LinkQueueFilterLinks', () => {
 
         if (i % 2 === 0) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(logger.trace.mock.calls.at(-1)[0]).toBe(LINK_QUEUE_EVENT_NAME);
+          expect(logger.info.mock.calls.at(-1)[0]).toBe(LINK_QUEUE_EVENT_NAME);
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(logger.trace.mock.calls.at(-1)[1].data).toStrictEqual(currentEvent);
+          expect(logger.info.mock.calls.at(-1)[1].data).toStrictEqual(currentEvent);
         }
       }
 
-      expect(logger.trace).toHaveBeenCalledTimes(Math.floor(n / 2));
+      expect(logger.info).toHaveBeenCalledTimes(Math.floor(n / 2));
     });
   });
 
@@ -362,7 +362,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(iri);
 
-      expect(logger.trace).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledTimes(1);
       const expectedEvent = {
         type: 'pop',
         link: {
@@ -385,8 +385,8 @@ describe('LinkQueueFilterLinks', () => {
         },
       };
 
-      expect(logger.trace.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
-      expect(logger.trace.mock.calls[0][1].data).toStrictEqual(expectedEvent);
+      expect(logger.info.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
+      expect(logger.info.mock.calls[0][1].data).toStrictEqual(expectedEvent);
     });
 
     it('should not log the event if no link are popped', () => {
@@ -400,7 +400,7 @@ describe('LinkQueueFilterLinks', () => {
       const wrapper = new LinkQueueLogger(linkQueue, query, logger);
       wrapper.pop();
 
-      expect(logger.trace).not.toHaveBeenCalled();
+      expect(logger.info).not.toHaveBeenCalled();
     });
 
     it('should log the event of a new link without reachability without annotation popped to the queue', () => {
@@ -422,7 +422,7 @@ describe('LinkQueueFilterLinks', () => {
 
       expect(resp).toBe(iri);
 
-      expect(logger.trace).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledTimes(1);
       const expectedEvent = {
         type: 'pop',
         link: {
@@ -439,8 +439,8 @@ describe('LinkQueueFilterLinks', () => {
         },
       };
 
-      expect(logger.trace.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
-      expect(logger.trace.mock.calls[0][1].data).toStrictEqual(expectedEvent);
+      expect(logger.info.mock.calls[0][0]).toBe(LINK_QUEUE_EVENT_NAME);
+      expect(logger.info.mock.calls[0][1].data).toStrictEqual(expectedEvent);
     });
 
     it('should log the events of multiple links popped out of the queue', () => {
@@ -539,9 +539,9 @@ describe('LinkQueueFilterLinks', () => {
 
         if (i % 2 === 0) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(logger.trace.mock.calls.at(-1)[0]).toBe(LINK_QUEUE_EVENT_NAME);
+          expect(logger.info.mock.calls.at(-1)[0]).toBe(LINK_QUEUE_EVENT_NAME);
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(logger.trace.mock.calls.at(-1)[1].data).toStrictEqual(currentEvent);
+          expect(logger.info.mock.calls.at(-1)[1].data).toStrictEqual(currentEvent);
         }
       }
     });
