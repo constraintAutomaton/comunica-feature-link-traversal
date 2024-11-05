@@ -300,7 +300,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
         // If we depend on a star pattern but we don't know what is the shape of the dependency
         // or the shape is not in the domain
-        if (result.result === ContainmentResult.DEPEND && result.target === undefined) {
+        if (result.result === ContainmentResult.DEPEND && (result.target === undefined)) {
           fullyContained = false;
         }
         for (const target of result.target ?? []) {
