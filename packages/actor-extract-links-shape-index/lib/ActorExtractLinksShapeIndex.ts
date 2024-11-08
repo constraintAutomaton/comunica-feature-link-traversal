@@ -285,17 +285,20 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       rejected: [],
     };
     if (this.query !== undefined) {
-      const shapes = await this.getShapesFromShapeIndex(shapeIndex, context);
+      const [ shapes, decidingShapes ] = await this.getShapesFromShapeIndex(shapeIndex, context);
 
       const resultsReport: IResult = solveShapeQueryContainment({
         query: this.query,
         shapes,
+        decidingShapes,
       });
 
       let fullyContained = true;
       const mapResult: Map<string, boolean> = new Map();
       for (const [ starPatternName, result ] of resultsReport.starPatternsContainment) {
-        if (result.result === ContainmentResult.ALIGNED || result.result === ContainmentResult.REJECTED) {
+        if (result.result === ContainmentResult.ALIGNED ||
+          result.result === ContainmentResult.REJECTED ||
+          result.result === ContainmentResult.PARTIALY_CONTAIN) {
           fullyContained = false;
         }
         // If we depend on a star pattern but we don't know what is the shape of the dependency
@@ -506,8 +509,12 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @param {IShapeIndex} shapeIndex
    * @returns {IShape[]} the shape from the index
    */
-  private async getShapesFromShapeIndex(shapeIndex: IShapeIndex, context: IActionContext): Promise<IShape[]> {
+  private async getShapesFromShapeIndex(
+    shapeIndex: IShapeIndex,
+    context: IActionContext,
+  ): Promise<[IShape[], Set<string>]> {
     const shapes: Map<string, IShape> = new Map();
+    const shapesFromIndexName: Set<string> = new Set();
     const getShapeOperations = [];
     for (const entry of shapeIndex.entries.values()) {
       const linkedShapesIri = entry.shape.getLinkedShapeIri();
@@ -515,7 +522,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         getShapeOperations.push(this.getShapeFromIRI(iri, iri, context));
       }
       shapes.set(entry.shape.name, entry.shape);
+      shapesFromIndexName.add(entry.shape.name);
     }
+
     for (const entry of shapeIndex.entries.values()) {
       const linkedShapesIri = entry.shape.getLinkedShapeIri();
       for (const iri of linkedShapesIri) {
@@ -530,7 +539,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         shapes.set(shape[0].name, shape[0]);
       }
     }
-    return [ ...shapes.values() ];
+    return [[ ...shapes.values() ], shapesFromIndexName ];
   }
 }
 

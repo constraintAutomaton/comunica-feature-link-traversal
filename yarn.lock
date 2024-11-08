@@ -13122,10 +13122,10 @@ qs@^6.10.1, qs@^6.11.2, qs@^6.4.0:
   dependencies:
     side-channel "^1.0.6"
 
-query-shape-detection@^0.2.6:
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.2.6.tgz#d97704c4b44b3479374c46b2ff260f668678240e"
-  integrity sha512-26c5Dt5TlIYrjcAXyjiTKyE0sE+5M55wDWgYIWQnibv1Od6RvpO+2WXuU45C9osdVfNXDdr0mOnJ3T4FHO0odg==
+query-shape-detection@^0.2.8:
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/query-shape-detection/-/query-shape-detection-0.2.8.tgz#2b503755a414c82ad507d7328fd9e8f95c250f71"
+  integrity sha512-A1kNvD8mkfX/d09209+vW1kfW36ijIEChoRe5DTbE29wAgD3er+oiVBrOv7a2wwjyB7sszrRvFmpLePoWuuSjw==
   dependencies:
     rdf-data-factory "^1.1.2"
     sparqlalgebrajs "^4.3.8"
