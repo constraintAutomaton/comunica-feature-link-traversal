@@ -38,7 +38,7 @@ export const KeysRdfJoin = {
 export const KeyReasoning = {
   /**
    * The rules to apply with their data source domain in the form of a URI template or of an RDF source.
-   * 
+   *
    */
   rules: new ActionContextKey<ScopedRules>('@comunica/actor-context-preprocess-query-source-reasoning:rules'),
 };

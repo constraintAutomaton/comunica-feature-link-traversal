@@ -11,7 +11,10 @@
     "ShapeTree",
     "ContentPolicy",
     "BindingsStreamAdaptiveDestroy",
-    "MetadataValidationState"
+    "MetadataValidationState",
+    "ScopedRules",
+    "EventEmitter",
+    "QuerySourceReasoning"
   ],
   "modulePrefix": {}
 }

@@ -285,7 +285,7 @@ describe('QuerySourceReasoning', () => {
       expect(implicitQuadStore.import).toHaveBeenNthCalledWith(1, expectedIt);
     });
 
-    it('should generate no implicit quads given rules and an inner source with no quads related to the rules', async() => {
+    it('should generate no implicit quads given an inner source with no quads related to the rules', async() => {
       const referenceValue: any = jest.fn();
       const ruleAll = [
         DF.quad(DF.blankNode(), DF.namedNode('boo'), DF.literal('abc')),
