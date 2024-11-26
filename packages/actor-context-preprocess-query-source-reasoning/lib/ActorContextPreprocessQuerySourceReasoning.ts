@@ -5,11 +5,13 @@ import type { IActionContextPreprocess, IActorContextPreprocessOutput } from '@c
 import { ActorContextPreprocess } from '@comunica/bus-context-preprocess';
 import { KeysQueryOperation, KeysQuerySourceIdentify } from '@comunica/context-entries';
 import { KeyReasoning } from '@comunica/context-entries-link-traversal';
-import type { IActorArgs, IActorTest } from '@comunica/core';
+import type { IActorArgs, IActorTest, TestResult} from '@comunica/core';
 import type { IQuerySourceWrapper, QuerySourceReference } from '@comunica/types';
 import { StreamingStore } from 'rdf-streaming-store';
 import { QuerySourceReasoning } from './QuerySourceReasoning';
 import type { ScopedRules } from './Rules';
+import { passTestVoid } from '@comunica/core';
+
 
 /**
  * A comunica Query Source Reasoning Context Preprocess Actor.
@@ -22,8 +24,8 @@ export class ActorContextPreprocessQuerySourceReasoning extends ActorContextPrep
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
   }
 
-  public async test(_action: IActionContextPreprocess): Promise<IActorTest> {
-    return true;
+  public async test(_action: IActionContextPreprocess): Promise<TestResult<IActorTest>> {
+    return passTestVoid();
   }
 
   public async run(action: IActionContextPreprocess): Promise<IActorContextPreprocessOutput> {

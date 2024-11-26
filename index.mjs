@@ -27,9 +27,20 @@ const logger = new LoggerBunyan(loggerParams);
 
 const bindingsStream = await myEngine.queryBindings(query, {
   lenient: true,
-  log: logger,
+  //log: logger,
 });
 
-const bindings = await bindingsStream.toArray();
+let i = 0;
+bindingsStream.on('data', (binding) => {
+    console.log(binding.toString()); // Quick way to print bindings for testing
+    i+=1;
+});
+bindingsStream.on('end', () => {
+    console.log(`there are ${i} results`);
 
-console.log(`there are ${bindings.length} results`);
+});
+bindingsStream.on('error', (error) => {
+    console.error(error);
+});
+
+
