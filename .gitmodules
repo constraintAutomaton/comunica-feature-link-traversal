@@ -1,0 +1,4 @@
+[submodule "comunica"]
+	path = comunica
+	url = https://github.com/constraintAutomaton/comunica.git
+	branch = draft/reasoning
