@@ -1138,22 +1138,6 @@
     "@comunica/types" "^4.0.2"
     lru-cache "^10.0.0"
 
-"@comunica/actor-context-preprocess-query-source-skolemize@^4.0.1", "@comunica/actor-context-preprocess-query-source-skolemize@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@comunica/actor-context-preprocess-query-source-skolemize/-/actor-context-preprocess-query-source-skolemize-4.0.2.tgz#57898593d5155a10e1ed65c8ecd3adab4575daf6"
-  integrity sha512-YycNbqmAQW0LxYI9ICK5f4HGZK6duIYVtQ36pZL75DreIbTs7ny8uQtSvusH7gGaaLZYrdAOXOqhdhz4MOWdPQ==
-  dependencies:
-    "@comunica/bus-context-preprocess" "^4.0.2"
-    "@comunica/context-entries" "^4.0.2"
-    "@comunica/core" "^4.0.2"
-    "@comunica/types" "^4.0.2"
-    "@comunica/utils-data-factory" "^4.0.1"
-    "@comunica/utils-metadata" "^4.0.2"
-    "@rdfjs/types" "*"
-    asynciterator "^3.9.0"
-    rdf-terms "^1.11.0"
-    sparqlalgebrajs "^4.3.8"
-
 "@comunica/actor-context-preprocess-set-defaults@^4.0.1", "@comunica/actor-context-preprocess-set-defaults@^4.0.2":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@comunica/actor-context-preprocess-set-defaults/-/actor-context-preprocess-set-defaults-4.0.2.tgz#04c779013d4c379664fc4ead487eec06781ed061"
@@ -3989,11 +3973,6 @@
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/@comunica/config-query-sparql/-/config-query-sparql-2.7.0.tgz#1030ee76d5532bc6a09a6c8af26a06c7311a5861"
   integrity sha512-rMnFgT7cz9+0z7wV4OzIMY5qM9/Z0mTGrR8y2JokoHyyTcBGOSajFmy61XCSLMCsLLG8qDXsJ4ClCCky3TGfqA==
-
-"@comunica/config-query-sparql@^4.0.1", "@comunica/config-query-sparql@~4.0.1":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@comunica/config-query-sparql/-/config-query-sparql-4.0.1.tgz#ad7da2b3636aaf7dd3eb5b4918c76ac3bf2c61d7"
-  integrity sha512-jNuRl7PmOKillPfvIzmO+I7IFP0nroFQrZaX/4pUIqe4WNrSCzjZqrLnru0BQtFE5LXcaEA9IdtISSfjwTFt2w==
 
 "@comunica/context-entries@^2.10.0":
   version "2.10.0"

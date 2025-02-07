@@ -6,8 +6,12 @@
     "engines/*",
     "packages/*",
     "comunica/packages/context-entries",
+    "comunica/packages/logger-bunyan",
+    "comunica/packages/actor-context-preprocess-query-source-skolemize",
+    "comunica/packages/actor-context-preprocess-query-source-reasoning",
+    "comunica/engines/config-query-sparql",
     "comunica/packages/actor-query-source-identify-hypermedia",
-    "comunica/packages/logger-bunyan"
+    "comunica/packages/actor-query-source-identify-hypermedia-reasoning-wrapper"
   ],
   "scripts": {
     "test-changed": "lerna run test --since HEAD",

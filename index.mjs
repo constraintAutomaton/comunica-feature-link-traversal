@@ -13,13 +13,15 @@ const myEngine = await new QueryEngineFactory().create({ configPath });
 const query = `
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-SELECT ?messageId ?messageCreationDate ?messageContent WHERE {
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+SELECT ?locationName (COUNT(?message) AS ?messages) WHERE {
   ?message snvoc:hasCreator2 <https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me>;
-    rdf:type snvoc:Post;
-    snvoc:content ?messageContent;
-    snvoc:creationDate ?messageCreationDate;
-    snvoc:id ?messageId.
+    rdf:type snvoc:Comment;
+    snvoc:isLocatedIn ?location.
+  ?location foaf:name ?locationName.
 }
+GROUP BY ?locationName
+ORDER BY DESC (?messages)
 `;
  
 const streamProvider = new BunyanStreamProviderStdout({ level: 'debug' });
@@ -47,7 +49,7 @@ const bindingsStream = await myEngine.queryBindings(query, {
   [KeyReasoning.rules.name]: new Map([
     ["*", debugRule]
   ]),
-  sources: ["https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me"]
+  //sources: ["https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me"]
 
 });
 
