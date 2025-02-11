@@ -15,7 +15,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 SELECT ?locationName (COUNT(?message) AS ?messages) WHERE {
-  ?message snvoc:hasCreator2 <https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me>;
+  ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me>;
     rdf:type snvoc:Comment;
     snvoc:isLocatedIn ?location.
   ?location foaf:name ?locationName.
@@ -37,9 +37,14 @@ const sameAs = DF.namedNode("http://www.w3.org/2002/07/owl#sameAs");
 
 const debugRule = [
     DF.quad(
-      DF.namedNode(`${snvocPrefix}hasCreator`),
+      DF.namedNode("http://xmlns.com/foaf/0.1/name"),
       sameAs,
-      DF.namedNode(`${snvocPrefix}hasCreator2`)
+      DF.namedNode(`http://xmlns.com/foaf/0.1/name2`)
+    ),
+    DF.quad(
+      DF.namedNode(`http://xmlns.com/foaf/0.1/name2`),
+      sameAs,
+      DF.namedNode(`http://xmlns.com/foaf/0.1/name3`)
     )
   ];
 
