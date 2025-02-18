@@ -1,0 +1,44 @@
+{
+  "interactive-discover-1": {},
+  "interactive-discover-2": {
+    "v1": {
+      "done": true,
+      "n_results": 46
+    }
+  },
+  "interactive-discover-3": {
+    "v1": {
+      "done": true,
+      "n_results": 67
+    }
+  },
+  "interactive-discover-4": {},
+  "interactive-discover-5": {
+    "v1": {
+      "done": true,
+      "n_results": 3
+    }
+  },
+  "interactive-discover-6": {},
+  "interactive-discover-7": {},
+  "interactive-discover-8": {
+    "v2": {
+      "done": false
+    }
+  },
+  "interactive-short-1": {},
+  "interactive-short-2": {
+    "v1": {
+      "done": false
+    }
+  },
+  "interactive-short-3": {},
+  "interactive-short-4": {},
+  "interactive-short-5": {},
+  "interactive-short-6": {},
+  "interactive-short-7": {
+    "v3": {
+      "done": false
+    }
+  }
+}
