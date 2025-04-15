@@ -1049,7 +1049,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           expect(filter(linkInDomainProducedByShapeIndex)).toBe(false);
         });
 
-        it('should generate a filter an incomplete shape index when the query is fully contained', async() => {
+        it('should generate a filter given incomplete shape index when the query is fully contained', async() => {
           const entries = new Map([
             [
               'foo',
