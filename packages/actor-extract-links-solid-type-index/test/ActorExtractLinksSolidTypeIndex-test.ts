@@ -1,21 +1,21 @@
 import type { Readable } from 'node:stream';
 import type { ActorInitQuery } from '@comunica/actor-init-query';
-import { BindingsFactory } from '@comunica/bindings-factory';
 import type { MediatorDereferenceRdf } from '@comunica/bus-dereference-rdf';
-import { KeysInitQuery, KeysQueryOperation } from '@comunica/context-entries';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
+import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
-import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { BindingsFactory } from '@comunica/utils-bindings-factory';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory as AlgebraFactory } from 'sparqlalgebrajs';
 import { ActorExtractLinksSolidTypeIndex } from '../lib/ActorExtractLinksSolidTypeIndex';
+import '@comunica/utils-jest';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 const quad = require('rdf-quad');
 const stream = require('streamify-array');
 
 const DF = new DataFactory();
-const BF = new BindingsFactory();
+const BF = new BindingsFactory(DF);
 const AF = new AlgebraFactory();
 
 describe('ActorExtractLinksSolidTypeIndex', () => {
@@ -43,11 +43,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         ),
         AF.createPattern(DF.variable('s'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
       ]),
-      [KeysQueryOperation.operation.name]: AF.createPattern(
-        DF.variable('s'),
-        DF.namedNode('ex:p'),
-        DF.namedNode('ex:bla'),
-      ),
     });
   });
 
@@ -79,142 +74,17 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
 
     describe('test', () => {
       it('should reject for an empty context', async() => {
-        await expect(actor.test(<any>{ context: new ActionContext() })).rejects
-          .toThrow('Actor actor can only work in the context of a query.');
+        await expect(actor.test(<any>{ context: new ActionContext() })).resolves
+          .toFailTest('Actor actor can only work in the context of a query.');
       });
-
-      it('should reject for a context without query operation', async() => {
-        await expect(actor.test(<any>{
-          context: new ActionContext({
-            [KeysInitQuery.query.name]: {},
-          }),
-        })).rejects.toThrow('Actor actor can only work in the context of a query operation.');
-      });
-
       it('should reject for a context without query', async() => {
         await expect(actor.test(<any>{
-          context: new ActionContext({
-            [KeysQueryOperation.operation.name]: {},
-          }),
-        })).rejects.toThrow('Actor actor can only work in the context of a query.');
+          context: new ActionContext({}),
+        })).resolves.toFailTest('Actor actor can only work in the context of a query.');
       });
 
       it('should be true for a valid context', async() => {
-        await expect(actor.test(<any>{ context })).resolves.toBeTruthy();
-      });
-
-      describe('deactivation', () => {
-        beforeEach(() => {
-          context = new ActionContext({
-            [KeysInitQuery.query.name]: AF.createBgp([
-              AF.createPattern(
-                DF.variable('s'),
-                DF.namedNode(ActorExtractLinksSolidTypeIndex.RDF_TYPE),
-                DF.namedNode('ex:class1'),
-              ),
-              AF.createPattern(DF.variable('s'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
-            ]),
-            [KeysQueryOperation.operation.name]: AF.createPattern(
-              DF.variable('s'),
-              DF.namedNode('ex:p'),
-              DF.namedNode('ex:bla'),
-            ),
-          });
-        });
-        it('should test if there is no deactivation map in the context', async() => {
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
-
-        it('should test if the predicate actor is not in the deactivation map', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
-
-        it('should not test if the right url is targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
-
-        it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
-
-        it('should not test if the right url regex is targeted', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  actor.name,
-                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
-
-        it(`should not test if the right url regex is targeted 
-        given all the reachability criteria are targeted`, async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-            .rejects.toThrow('the extractor has been deactivated');
-        });
-
-        it('should test if the right actor is targeted by with the wrong url', async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  actor.name,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
-
-        it(`should test if the right actor is targeted by with the wrong url 
-        given all the reachability criteria are targeted`, async() => {
-          context = context
-            .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-              [
-                [
-                  EVERY_REACHABILITY_CRITERIA,
-                  { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
-                ],
-              ],
-            ));
-          await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-            .resolves.toBe(true);
-        });
+        await expect(actor.test(<any>{ context })).resolves.toPassTestVoid();
       });
     });
 
@@ -380,11 +250,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ),
           AF.createPattern(DF.variable('s'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
         ]),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s'),
-          DF.namedNode('ex:p'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
@@ -424,13 +289,8 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ),
           AF.createPattern(DF.variable('s1'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
 
-          AF.createPattern(DF.variable('s2'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
+          AF.createPattern(DF.namedNode('s2'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
         ]),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:p'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
@@ -452,6 +312,58 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
     });
+    it(
+      'should run on a stream with type index predicates for a partially matching query with only variable subjects',
+      async() => {
+        input = stream([
+          quad('ex:s1', 'ex:typeIndex1', 'ex:index1'),
+          quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
+          quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
+          quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
+        ]);
+        (<any>actor).queryEngine.queryBindings = (query: string) => {
+          if (query.includes('solid:TypeRegistration')) {
+            return {
+              toArray: async() => [
+                BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+                BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+              ],
+            };
+          }
+          return {
+            toArray: async() => [],
+          };
+        };
+        context = new ActionContext({
+          [KeysInitQuery.query.name]: AF.createBgp([
+            AF.createPattern(
+              DF.variable('s1'),
+              DF.namedNode(ActorExtractLinksSolidTypeIndex.RDF_TYPE),
+              DF.namedNode('ex:class1'),
+            ),
+            AF.createPattern(DF.variable('s1'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
+
+            AF.createPattern(DF.variable('s2'), DF.namedNode('ex:p'), DF.namedNode('ex:bla')),
+          ]),
+        });
+        await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+          .toEqual({
+            links: [
+              {
+                url: 'ex:file1',
+              },
+            ].map((link) => {
+              return {
+                ...link,
+                metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+              };
+            }),
+          });
+
+        expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
+        expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
+      },
+    );
 
     it('should run on a stream with type index predicates for a link property path query', async() => {
       input = stream([
@@ -465,11 +377,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           DF.variable('s1'),
           AF.createLink(DF.namedNode(ActorExtractLinksSolidTypeIndex.RDF_TYPE)),
           DF.namedNode('ex:class1'),
-        ),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:p'),
-          DF.namedNode('ex:bla'),
         ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
@@ -515,11 +422,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           DF.namedNode('ex:predicate7'),
           DF.namedNode('ex:blabla'),
         ),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s'),
-          DF.namedNode('ex:predicate7'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
@@ -557,6 +459,59 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
             ],
           };
         }
+        return {
+          toArray: async() => [],
+        };
+      };
+      context = new ActionContext({
+        [KeysInitQuery.query.name]: AF.createBgp([
+          AF.createPattern(DF.variable('s1'), DF.namedNode('ex:predicate8'), DF.namedNode('ex:bla')),
+          AF.createPattern(DF.namedNode('s2'), DF.namedNode('ex:predicate9'), DF.namedNode('ex:bla')),
+        ]),
+      });
+      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+        .toEqual({
+          links: [
+            {
+              url: 'ex:file1',
+            },
+            {
+              url: 'ex:file2',
+            },
+          ].map((link) => {
+            return {
+              ...link,
+              metadata: { producedByActor: { name: actor.name, onlyMatchingTypes: true, inference: true }},
+            };
+          }),
+        });
+      expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
+      expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
+    });
+    it(`should not run on a stream with multiple type index predicates 
+      without class explicit in query with only variable subjects`, async() => {
+      input = stream([
+        quad('ex:s1', 'ex:typeIndex1', 'ex:index1'),
+        quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
+        quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
+        quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
+      ]);
+      (<any>actor).queryEngine.queryBindings = (query: string) => {
+        if (query.includes('solid:TypeRegistration')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ instance: DF.namedNode('ex:file1'), class: DF.namedNode('ex:class1') }),
+              BF.fromRecord({ instance: DF.namedNode('ex:file2'), class: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
+        if (query.includes('ex:predicate8')) {
+          return {
+            toArray: async() => [
+              BF.fromRecord({ domain: DF.namedNode('ex:class2') }),
+            ],
+          };
+        }
 
         return {
           toArray: async() => [],
@@ -567,18 +522,10 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           AF.createPattern(DF.variable('s1'), DF.namedNode('ex:predicate8'), DF.namedNode('ex:bla')),
           AF.createPattern(DF.variable('s2'), DF.namedNode('ex:predicate9'), DF.namedNode('ex:bla')),
         ]),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:predicate1'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
-            {
-              url: 'ex:file1',
-            },
             {
               url: 'ex:file2',
             },
@@ -622,11 +569,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
         [KeysInitQuery.query.name]: AF.createBgp([
           AF.createPattern(DF.variable('s1'), DF.namedNode('ex:predicate10'), DF.namedNode('ex:bla')),
         ]),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:predicate10'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
@@ -680,11 +622,6 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
           ]),
           DF.namedNode('ex:class1'),
         ),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:p'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
@@ -736,14 +673,9 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
       ]);
       context = new ActionContext({
         [KeysInitQuery.query.name]: AF.createPattern(
-          DF.variable('s'),
+          DF.namedNode('s'),
           DF.namedNode('ex:predicate1'),
-          DF.namedNode('ex:blabla'),
-        ),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s'),
-          DF.namedNode('ex:predicate1'),
-          DF.namedNode('ex:bla'),
+          DF.variable('o1'),
         ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
@@ -765,6 +697,31 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
       expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
     });
+    it(
+      'should not run on a stream with type index predicates without class in query and variable subjects',
+      async() => {
+        input = stream([
+          quad('ex:s1', 'ex:typeIndex1', 'ex:index1'),
+          quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
+          quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
+          quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
+        ]);
+        context = new ActionContext({
+          [KeysInitQuery.query.name]: AF.createPattern(
+            DF.variable('s'),
+            DF.namedNode('ex:predicate1'),
+            DF.namedNode('ex:blabla'),
+          ),
+        });
+        await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+          .toEqual({
+            links: [
+            ],
+          });
+        expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledTimes(1);
+        expect(mediatorDereferenceRdf.mediate).toHaveBeenCalledWith({ url: 'ex:index1', context });
+      },
+    );
 
     it('should run on a stream with multiple type index predicates without class in query', async() => {
       input = stream([
@@ -776,13 +733,8 @@ describe('ActorExtractLinksSolidTypeIndex', () => {
       context = new ActionContext({
         [KeysInitQuery.query.name]: AF.createBgp([
           AF.createPattern(DF.variable('s1'), DF.namedNode('ex:predicate1'), DF.namedNode('ex:bla')),
-          AF.createPattern(DF.variable('s2'), DF.namedNode('ex:predicate2'), DF.namedNode('ex:bla')),
+          AF.createPattern(DF.namedNode('s2'), DF.namedNode('ex:predicate2'), DF.namedNode('ex:bla')),
         ]),
-        [KeysQueryOperation.operation.name]: AF.createPattern(
-          DF.variable('s1'),
-          DF.namedNode('ex:predicate1'),
-          DF.namedNode('ex:bla'),
-        ),
       });
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({

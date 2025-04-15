@@ -4,18 +4,17 @@ import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bu
 import {
   ActorExtractLinks,
 } from '@comunica/bus-extract-links';
-import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
 import { KeysQueryOperation } from '@comunica/context-entries';
-import type { IActorArgs, IActorTest } from '@comunica/core';
-import { ActionContext, ActionContextKey } from '@comunica/core';
-import type { Bindings, IActionContext } from '@comunica/types';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import type { IActorArgs, IActorTest, TestResult } from '@comunica/core';
+import { ActionContext, ActionContextKey, passTestVoid } from '@comunica/core';
+import type { ILink, Bindings, IActionContext } from '@comunica/types';
 import type * as RDF from '@rdfjs/types';
 import { storeStream } from 'rdf-store-stream';
 import { matchPatternComplete } from 'rdf-terms';
 import type { Algebra } from 'sparqlalgebrajs';
 import type { ContentPolicy } from './ContentPolicy';
 import { SimpleSclParser } from './SimpleSclParser';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 /**
  * A comunica Traverse Content Policies RDF Metadata Extract Actor.
@@ -32,6 +31,10 @@ export class ActorExtractLinksContentPolicies extends ActorExtractLinks
     super(args);
     this.sclParser = new SimpleSclParser();
     this.queryEngine = new QueryEngineBase(args.actorInitQuery);
+  }
+
+  public async test(_action: IActionExtractLinks): Promise<TestResult<IActorTest>> {
+    return passTestVoid();
   }
 
   public static getContentPolicies(context: IActionContext): ContentPolicy[] {

@@ -1,7 +1,8 @@
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysQueryOperation } from '@comunica/context-entries';
-import type { IActorArgs, IActorTest } from '@comunica/core';
+import type { IActorArgs, IActorTest, TestResult } from '@comunica/core';
+import { failTest, passTestVoid } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { filterQuadTermNames, getNamedNodes, getTerms, matchPatternComplete } from 'rdf-terms';
@@ -25,18 +26,11 @@ export class ActorExtractLinksQuadPattern extends ActorExtractLinks {
     return currentQueryOperation;
   }
 
-  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
-    return new Promise((resolve, reject) => {
-      super.test(action).then(() => {
-        if (!ActorExtractLinksQuadPattern.getCurrentQuadPattern(action.context)) {
-          reject(new Error(`Actor ${this.name} can only work in the context of a quad pattern.`));
-          return;
-        }
-        resolve(true);
-      }, (reason: Error) => {
-        reject(reason);
-      });
-    });
+  public async test(action: IActionExtractLinks): Promise<TestResult<IActorTest>> {
+    if (!ActorExtractLinksQuadPattern.getCurrentQuadPattern(action.context)) {
+      return failTest(`Actor ${this.name} can only work in the context of a quad pattern.`);
+    }
+    return passTestVoid();
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

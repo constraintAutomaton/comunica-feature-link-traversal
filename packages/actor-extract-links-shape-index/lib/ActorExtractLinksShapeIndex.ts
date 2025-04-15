@@ -4,10 +4,10 @@ import type {
   IActorExtractLinksOutput,
 } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
-import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
+import type { ILink } from '@comunica/types';
 import { KeysInitQuery } from '@comunica/context-entries';
 import { KeysFilter } from '@comunica/context-entries-link-traversal';
-import type { IActorTest, IActorArgs } from '@comunica/core';
+import type { IActorTest, IActorArgs, TestResult } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import type { FilterFunction } from '@comunica/types-link-traversal';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
@@ -26,7 +26,7 @@ import type {
 import { DataFactory } from 'rdf-data-factory';
 import type { Algebra } from 'sparqlalgebrajs';
 import { SafePromise, isError, result, error, isResult, type Result, safePromise } from 'result-interface';
-import { TestResultFailed } from '@comunica/core';
+import { passTestVoid, TestResultFailed } from '@comunica/core';
 const DF = new DataFactory<RDF.BaseQuad>();
 
 /**
@@ -71,6 +71,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     super(args);
   }
 
+  public async test(_action: IActionExtractLinks): Promise<TestResult<IActorTest>> {
+    return passTestVoid();
+  }
+  
   /**
    * Discover a shape index, add to the link queue the entries align with the query
    * and generate a filters to prune entries that are not aligned.

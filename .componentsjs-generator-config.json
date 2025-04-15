@@ -13,7 +13,8 @@
     "BindingsStreamAdaptiveDestroy",
     "MetadataValidationState",
     "LinkQueueFilterLinks",
-    "LinkQueueSaveOnDiskInfo"
+    "LinkQueueSaveOnDiskInfo",
+    "ILink"
   ],
   "modulePrefix": {}
 }

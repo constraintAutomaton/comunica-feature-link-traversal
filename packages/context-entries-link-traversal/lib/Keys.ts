@@ -1,5 +1,4 @@
 import { ActionContextKey } from '@comunica/core';
-import type { IDataDestination } from '@comunica/types';
 import type { AnnotateSourcesType, FilterFunction, IActorExtractDescription } from '@comunica/types-link-traversal';
 
 /**
@@ -31,7 +30,7 @@ export const KeysRdfJoin = {
   /**
    * If adaptive joining must not be done.
    */
-  skipAdaptiveJoin: new ActionContextKey<IDataDestination>('@comunica/bus-rdf-join:skipAdaptiveJoin'),
+  skipAdaptiveJoin: new ActionContextKey<boolean>('@comunica/bus-rdf-join:skipAdaptiveJoin'),
 };
 
 export const KeysFilter = {

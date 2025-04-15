@@ -1,21 +1,21 @@
-import { BindingsFactory } from '@comunica/bindings-factory';
 import type { BindingsStream } from '@comunica/types';
+import { BindingsFactory } from '@comunica/utils-bindings-factory';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator, BufferedIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsStreamAdaptiveDestroy } from '../lib';
-import '@comunica/jest';
+import '@comunica/utils-jest';
 
 jest.useFakeTimers();
 
-const BF = new BindingsFactory();
 const DF = new DataFactory();
+const BF = new BindingsFactory(DF);
 
 describe('BindingsStreamAdaptiveDestroy', () => {
   it('produces the first iterator if the timeout is not reached', async() => {
     const delayedSource = jest.fn();
     const it = new BindingsStreamAdaptiveDestroy(
-      new ArrayIterator([
+      <BindingsStream> <unknown> new ArrayIterator([
         BF.fromRecord({ a: DF.namedNode('ex:a1') }),
         BF.fromRecord({ a: DF.namedNode('ex:a2') }),
       ]),
@@ -32,7 +32,7 @@ describe('BindingsStreamAdaptiveDestroy', () => {
 
   it('consumes part of the second iterator if the timeout is reached', async() => {
     const delayedSource = jest.fn(async() => {
-      return new ArrayIterator([
+      return <BindingsStream> <unknown> new ArrayIterator([
         BF.fromRecord({ a: DF.namedNode('ex:a1') }),
         BF.fromRecord({ a: DF.namedNode('ex:a2') }),
       ], { autoStart: false });

@@ -1,3 +1,3 @@
-import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
+import type { ILink } from '@comunica/types';
 
 export type FilterFunction = (link: ILink) => boolean;

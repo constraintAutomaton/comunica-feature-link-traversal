@@ -1,6 +1,7 @@
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
-import type { IActorArgs, IActorTest } from '@comunica/core';
+import type { IActorArgs, IActorTest, TestResult } from '@comunica/core';
+import { passTestVoid } from '@comunica/core';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 /**
@@ -16,6 +17,10 @@ export class ActorExtractLinksPredicates extends ActorExtractLinks {
 
     this.stringPredicates = args.predicateRegexes;
     this.predicates = args.predicateRegexes.map(stringRegex => new RegExp(stringRegex, 'u'));
+  }
+
+  public async test(_action: IActionExtractLinks): Promise<TestResult<IActorTest>> {
+    return passTestVoid();
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

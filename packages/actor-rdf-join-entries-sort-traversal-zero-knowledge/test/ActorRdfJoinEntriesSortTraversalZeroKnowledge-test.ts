@@ -4,6 +4,7 @@ import type { IActionContext } from '@comunica/types';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import { ActorRdfJoinEntriesSortTraversalZeroKnowledge } from '../lib/ActorRdfJoinEntriesSortTraversalZeroKnowledge';
+import '@comunica/utils-jest';
 
 const FACTORY = new Factory();
 const DF = new DataFactory();
@@ -463,7 +464,7 @@ describe('ActorRdfJoinEntriesSortTraversalZeroKnowledge', () => {
 
     describe('test', () => {
       it('should return true', async() => {
-        await expect(actor.test(<any> {})).resolves.toBeTruthy();
+        await expect(actor.test(<any> {})).resolves.toPassTestVoid();
       });
     });
 
@@ -498,8 +499,8 @@ describe('ActorRdfJoinEntriesSortTraversalZeroKnowledge', () => {
 
       it('should handle multiple entries', async() => {
         context = context.set(KeysQueryOperation.querySources, [
-          { source: { referenceValue: 'ex:seed' }},
-          { source: { referenceValue: 'ex:seed2' }},
+          { source: <any> { referenceValue: 'ex:seed' }},
+          { source: <any> { referenceValue: 'ex:seed2' }},
         ]);
         await expect(actor.run({
           entries: [

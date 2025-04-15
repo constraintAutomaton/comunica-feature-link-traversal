@@ -1,9 +1,6 @@
-import type { ILink } from '@comunica/bus-rdf-resolve-hypermedia-links';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorOutput, IActorTest, Mediate, IAction } from '@comunica/core';
 import { Actor } from '@comunica/core';
-import type { IActorExtractDescription } from '@comunica/types-link-traversal';
-import { EVERY_REACHABILITY_CRITERIA } from '@comunica/types-link-traversal';
+import type { ILink } from '@comunica/types';
 import type * as RDF from '@rdfjs/types';
 
 /**
@@ -17,11 +14,12 @@ import type * as RDF from '@rdfjs/types';
  * @see IActionExtractLinks
  * @see IActorExtractLinksOutput
  */
-export abstract class ActorExtractLinks extends Actor<IActionExtractLinks, IActorTest, IActorExtractLinksOutput> {
+export abstract class ActorExtractLinks<TS = undefined>
+  extends Actor<IActionExtractLinks, IActorTest, IActorExtractLinksOutput, TS> {
   /**
    * @param args - @defaultNested {<default_bus> a <cc:components/Bus.jsonld#Bus>} bus
    */
-  public constructor(args: IActorExtractLinksArgs) {
+  public constructor(args: IActorExtractLinksArgs<TS>) {
     super(args);
   }
 
@@ -48,45 +46,6 @@ export abstract class ActorExtractLinks extends Actor<IActionExtractLinks, IActo
       metadata.on('end', () => {
         resolve(links);
       });
-    });
-  }
-
-  public async test(action: IActionExtractLinks): Promise<IActorTest> {
-    return new Promise((resolve, reject) => {
-      const deactivationMap: Map<string, IActorExtractDescription> | undefined =
-        action.context.get(KeysDeactivateLinkExtractor.deactivate);
-      if (deactivationMap === undefined) {
-        resolve(true);
-        return;
-      }
-
-      let deactivationInformation: IActorExtractDescription | undefined;
-      for (const name of [ this.name, EVERY_REACHABILITY_CRITERIA ]) {
-        const currentDeactivationInformation = deactivationMap.get(name);
-        if (currentDeactivationInformation !== undefined) {
-          deactivationInformation = currentDeactivationInformation;
-          break;
-        }
-      }
-
-      if (deactivationInformation === undefined) {
-        resolve(true);
-        return;
-      }
-
-      if (deactivationInformation.urls.has(action.url)) {
-        reject(new Error('the extractor has been deactivated'));
-        return;
-      }
-
-      for (const regex of deactivationInformation.urlPatterns) {
-        if (regex.test(action.url)) {
-          reject(new Error('the extractor has been deactivated'));
-          return;
-        }
-      }
-
-      resolve(true);
     });
   }
 }
@@ -122,10 +81,11 @@ export interface IActorExtractLinksOutput extends IActorOutput {
   linksConditional?: ILink[];
 }
 
-export type IActorExtractLinksArgs = IActorArgs<
-  IActionExtractLinks,
-  IActorTest,
-  IActorExtractLinksOutput
+export type IActorExtractLinksArgs<TS = undefined> = IActorArgs<
+IActionExtractLinks,
+IActorTest,
+IActorExtractLinksOutput,
+TS
 >;
 
 export type MediatorExtractLinks = Mediate<

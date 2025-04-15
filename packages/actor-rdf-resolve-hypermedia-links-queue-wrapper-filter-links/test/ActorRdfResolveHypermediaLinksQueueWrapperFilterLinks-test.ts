@@ -1,4 +1,4 @@
-import { Bus, ActionContext } from '@comunica/core';
+import { Bus, ActionContext, passTestVoid, failTest } from '@comunica/core';
 import { ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks, KEY_CONTEXT_WRAPPED }
   from '../lib/ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks';
 import { LinkQueueFilterLinks } from '../lib/LinkQueueFilterLinks';
@@ -20,7 +20,7 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
         });
       });
       it('should test', async() => {
-        await expect(actor.test({ firstUrl: 'first', context: new ActionContext() })).resolves.toBe(true);
+        await expect(actor.test({ firstUrl: 'first', context: new ActionContext() })).resolves.toStrictEqual(passTestVoid());
       });
 
       it('should not test when called recursively', async() => {
@@ -29,7 +29,7 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
           context: new ActionContext({
             [KEY_CONTEXT_WRAPPED.name]: true,
           }),
-        })).rejects.toThrow('Unable to wrap link queues multiple times');
+        })).rejects.toStrictEqual(failTest('Unable to wrap link queues multiple times'));
       });
     });
 

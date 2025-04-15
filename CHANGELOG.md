@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v0.6.1"></a>
+## [v0.6.1](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.6.0...v0.6.1) - 2024-10-15
+
+### Fixed
+* [Remove actor-rdf-join-inner-multi-empty from config](https://github.com/comunica/comunica-feature-link-traversal/commit/c015058c388062c39f1c0f3a27e22bd19c55ed16)
+* [Fix config errors](https://github.com/comunica/comunica-feature-link-traversal/commit/908ff6d319a80eff81865d88b9ddece607389d4d)
+
+<a name="v0.6.0"></a>
+## [v0.6.0](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.5.0...v0.6.0) - 2024-10-15
+
+### BREAKING CHANGES
+* [Update to Comunica v4](https://github.com/comunica/comunica-feature-link-traversal/commit/c88324b210d656899e9dcac186cadf06d68512ed)
+  * Learn more on https://github.com/comunica/comunica/blob/master/CHANGELOG.md
+
 <a name="v0.5.0"></a>
 ## [v0.5.0](https://github.com/comunica/comunica-feature-link-traversal/compare/v0.4.1...v0.5.0) - 2024-08-07
 

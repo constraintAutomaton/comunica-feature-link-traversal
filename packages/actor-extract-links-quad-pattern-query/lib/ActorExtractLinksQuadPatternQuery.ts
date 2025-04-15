@@ -1,7 +1,8 @@
 import type { IActionExtractLinks, IActorExtractLinksOutput } from '@comunica/bus-extract-links';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysInitQuery } from '@comunica/context-entries';
-import type { IActorArgs, IActorTest } from '@comunica/core';
+import type { IActorArgs, IActorTest, TestResult } from '@comunica/core';
+import { failTest, passTestVoid } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
 import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
@@ -66,18 +67,11 @@ export class ActorExtractLinksQuadPatternQuery extends ActorExtractLinks {
     return matchingPatterns;
   }
 
-  public override async test(action: IActionExtractLinks): Promise<IActorTest> {
-    return new Promise((resolve, reject) => {
-      super.test(action).then(() => {
-        if (!ActorExtractLinksQuadPatternQuery.getCurrentQuery(action.context)) {
-          reject(new Error(`Actor ${this.name} can only work in the context of a query.`));
-          return;
-        }
-        resolve(true);
-      }, (reason: Error) => {
-        reject(reason);
-      });
-    });
+  public async test(action: IActionExtractLinks): Promise<TestResult<IActorTest>> {
+    if (!ActorExtractLinksQuadPatternQuery.getCurrentQuery(action.context)) {
+      return failTest(`Actor ${this.name} can only work in the context of a query.`);
+    }
+    return passTestVoid();
   }
 
   public async run(action: IActionExtractLinks): Promise<IActorExtractLinksOutput> {

@@ -4,8 +4,8 @@ import type {
 } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { ActorRdfResolveHypermediaLinksQueue } from '@comunica/bus-rdf-resolve-hypermedia-links-queue';
 import { KeysFilter } from '@comunica/context-entries-link-traversal';
-import type { IActorArgs, IActorTest, Mediator, Actor } from '@comunica/core';
-import { ActionContextKey } from '@comunica/core';
+import type { IActorArgs, IActorTest, Mediator, Actor, TestResult } from '@comunica/core';
+import { ActionContextKey, failTest, passTestVoid } from '@comunica/core';
 import type { FilterFunction } from '@comunica/types-link-traversal';
 import { LinkQueueFilterLinks } from './LinkQueueFilterLinks';
 
@@ -27,11 +27,11 @@ IActorRdfResolveHypermediaLinksQueueOutput
     super(args);
   }
 
-  public async test(action: IActionRdfResolveHypermediaLinksQueue): Promise<IActorTest> {
+  public async test(action: IActionRdfResolveHypermediaLinksQueue): Promise<TestResult<IActorTest>> {
     if (action.context.get(KEY_CONTEXT_WRAPPED)) {
-      throw new Error('Unable to wrap link queues multiple times');
+      throw failTest('Unable to wrap link queues multiple times');
     }
-    return true;
+    return passTestVoid();
   }
 
   public async run(action: IActionRdfResolveHypermediaLinksQueue): Promise<IActorRdfResolveHypermediaLinksQueueOutput> {
