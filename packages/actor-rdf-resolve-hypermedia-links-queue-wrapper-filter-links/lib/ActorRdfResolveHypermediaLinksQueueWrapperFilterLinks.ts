@@ -6,7 +6,6 @@ import { ActorRdfResolveHypermediaLinksQueue } from '@comunica/bus-rdf-resolve-h
 import { KeysFilter } from '@comunica/context-entries-link-traversal';
 import type { IActorArgs, IActorTest, Mediator, Actor, TestResult } from '@comunica/core';
 import { ActionContextKey, failTest, passTestVoid } from '@comunica/core';
-import type { FilterFunction } from '@comunica/types-link-traversal';
 import { LinkQueueFilterLinks } from './LinkQueueFilterLinks';
 
 /**
@@ -44,7 +43,7 @@ IActorRdfResolveHypermediaLinksQueueOutput
     return {
       linkQueue: new LinkQueueFilterLinks(
         linkQueue,
-        <Map<string, FilterFunction>> filterMap,
+        filterMap,
         this.calculateSize,
       ),
     };

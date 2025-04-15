@@ -1,7 +1,5 @@
 import type { Readable } from 'node:stream';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { EVERY_REACHABILITY_CRITERIA } from '@comunica/types-link-traversal';
 import { ActorExtractLinksHeaders } from '../lib/ActorExtractLinksHeaders';
 import '@comunica/utils-jest';
 

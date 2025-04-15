@@ -43,8 +43,8 @@
     "@comunica/core": "^4.1.0",
     "@comunica/types-link-traversal": "^0.6.0",
     "query-shape-detection": "^0.2.8",
-    "result-interface": "^2.0.0",
-    "rdf-data-factory": "^1.1.2"
+    "rdf-data-factory": "^1.1.2",
+    "result-interface": "git+https://github.com/constraintAutomaton/result-interface-ts.git"
   },
   "devDependencies": {
     "jsonld-context-parser": "^2.4.0",

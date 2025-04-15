@@ -1,9 +1,8 @@
 import type { Readable } from 'node:stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysInitQuery } from '@comunica/context-entries';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import {

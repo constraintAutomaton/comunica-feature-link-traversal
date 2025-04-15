@@ -1,7 +1,7 @@
 import type { Readable } from 'node:stream';
 import { KeysQueryOperation } from '@comunica/context-entries';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { BindingsFactory } from '@comunica/utils-bindings-factory';
 import { arrayifyStream } from 'arrayify-stream';
 import { ArrayIterator } from 'asynciterator';
@@ -14,7 +14,6 @@ import {
   KEY_CONTEXT_WITHPOLICIES,
 } from '..';
 import '@comunica/utils-jest';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 const quad = require('rdf-quad');
 const streamifyArray = require('streamify-array');

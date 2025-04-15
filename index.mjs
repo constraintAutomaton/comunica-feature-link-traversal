@@ -2,7 +2,7 @@ import { LoggerBunyan, BunyanStreamProviderStdout } from '@comunica/logger-bunya
 
 import { QueryEngineFactory } from '@comunica/query-sparql-link-traversal-solid';
 
-//const configPath = '/home/bryanelliott/Documents/PhD/coding/shapeIndexExperiment/best-case/config/config-solid-shape-index.json';
+// Const configPath = '/home/bryanelliott/Documents/PhD/coding/shapeIndexExperiment/best-case/config/config-solid-shape-index.json';
 const configPath = '/home/bryanelliott/Documents/PhD/coding/shapeIndexExperiment/best-case/config/config-solid-default.json';
 const myEngine = await new QueryEngineFactory().create({ configPath });
 

@@ -1,7 +1,6 @@
 import type { Readable } from 'node:stream';
-import { KeysDeactivateLinkExtractor } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
-import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { ActorExtractLinksPredicates } from '../lib/ActorExtractLinksPredicates';
 import '@comunica/utils-jest';
 
@@ -38,12 +37,12 @@ describe('ActorExtractLinksTraversePredicates', () => {
       ]);
     });
     describe('test', () => {
-      it('should test ', async () => {
+      it('should test ', async() => {
         await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
           .resolves.toPassTestVoid();
       });
 
-      it('should run on a stream and return all ldp:contains values', async () => {
+      it('should run on a stream and return all ldp:contains values', async() => {
         await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
           .toEqual({
             links: [
@@ -89,7 +88,7 @@ describe('ActorExtractLinksTraversePredicates', () => {
         ]);
       });
 
-      it('should run on a stream and return all ldp:contains values', async () => {
+      it('should run on a stream and return all ldp:contains values', async() => {
         await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
           .toEqual({
             links: [

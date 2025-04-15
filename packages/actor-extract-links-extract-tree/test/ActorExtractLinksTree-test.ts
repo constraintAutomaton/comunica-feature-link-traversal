@@ -1,4 +1,4 @@
-import { KeysDeactivateLinkExtractor, KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
+import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
 import type * as RDF from '@rdfjs/types';
 import { DataFactory } from 'rdf-data-factory';

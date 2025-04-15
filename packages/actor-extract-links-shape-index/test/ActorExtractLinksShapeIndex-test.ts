@@ -1,16 +1,17 @@
 import { KeysInitQuery } from '@comunica/context-entries';
 import { KeysDeactivateLinkExtractor, KeysFilter } from '@comunica/context-entries-link-traversal';
-import { ActionContext, Bus } from '@comunica/core';
+import { ActionContext, Bus, passTestVoid } from '@comunica/core';
 import { EVERY_REACHABILITY_CRITERIA, PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { ArrayIterator } from 'asynciterator';
 import { ContextParser, FetchDocumentLoader } from 'jsonld-context-parser';
 import { JsonLdParser } from 'jsonld-streaming-parser';
 import * as N3 from 'n3';
-import { type IShape, generateQuery, Shape } from 'query-shape-detection';
+import { type IShape, generateQuery, IResult, Shape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 import { translate, Factory } from 'sparqlalgebrajs';
 import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
+import { isError, result, error, isResult, IResult as IResultInterface, safePromise, type Result, type SafePromise } from 'result-interface/src/index';
 
 // eslint-disable-next-line import/extensions
 import * as SHEX_CONTEXT from './shex-context.json';
@@ -65,99 +66,18 @@ describe('ActorExtractLinksShapeIndex', () => {
       });
       it('should test if there is no deactivation map in the context', async() => {
         await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
-          .resolves.toBe(true);
-      });
-
-      it('should test if the predicate actor is not in the deactivation map', async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ 'foo', { actorParam: new Map(), urls: new Set([ '' ]), urlPatterns: [ /.*/u ]}]],
-          ));
-        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-          .resolves.toBe(true);
-      });
-
-      it('should not test if the right url is targeted', async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]}]],
-          ));
-        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-          .rejects.toThrow('the extractor has been deactivated');
-      });
-
-      it('should not test if the right url is targeted given all the reachability criteria are targeted', async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [
-              [
-                EVERY_REACHABILITY_CRITERIA,
-                { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /.*/u ]},
-              ],
-            ],
-          ));
-        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context }))
-          .rejects.toThrow('the extractor has been deactivated');
-      });
-
-      it('should not test if the right url regex is targeted', async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [
-              [ actor.name, { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]}],
-            ],
-          ));
-        await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-          .rejects.toThrow('the extractor has been deactivated');
-      });
-
-      it(`should not test if the right url regex is targeted 
-      given all the reachability criteria are targeted`, async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [
-              [
-                EVERY_REACHABILITY_CRITERIA,
-                { actorParam: new Map(), urls: new Set([ 'ex:s' ]), urlPatterns: [ new RegExp(`${'ex:s/.*'}`, 'u') ]},
-              ],
-            ],
-          ));
-        await expect(actor.test({ url: 'ex:s/foo/bar', metadata: input, requestTime: 0, context }))
-          .rejects.toThrow('the extractor has been deactivated');
-      });
-
-      it('should test if the right actor is targeted by with the wrong url', async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [[ actor.name, { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]}]],
-          ));
-        await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-          .resolves.toBe(true);
-      });
-
-      it(`should test if the right actor is targeted by with the wrong url 
-      given all the reachability criteria are targeted`, async() => {
-        const context = new ActionContext()
-          .set(KeysDeactivateLinkExtractor.deactivate, new Map(
-            [
-              [
-                EVERY_REACHABILITY_CRITERIA,
-                { actorParam: new Map([]), urls: new Set([ 'ex:s' ]), urlPatterns: [ /ex:s\/.*/u ]},
-              ],
-            ],
-          ));
-        await expect(actor.test({ url: 'ex:sb', metadata: input, requestTime: 0, context }))
-          .resolves.toBe(true);
+          .resolves.toStrictEqual(passTestVoid());
       });
     });
 
     describe('getShapeFromIRI', () => {
       const iri = 'http://exemple.com#foo';
       const context: any = {};
+      const entry = 'bar';
+
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
       });
-      const entry = 'bar';
 
       it('should return an Error if the shape IRI resource contains no quads', async() => {
         mediatorDereferenceRdf = <any>{
@@ -172,10 +92,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
+        const resp  = await actor.getShapeFromIRI(iri, entry, context); 
+        expect(isError(resp)).resolves.toBe(true);
       });
 
-      it('should return an error the mediator fail to fetch the quads', async() => {
+      it('should return an error if the mediator fail to fetch the quads', async() => {
         mediatorDereferenceRdf = <any>{
           mediate: jest.fn(async() => {
             return new Promise((_, reject) => {
@@ -190,10 +111,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
+        const resp  = await actor.getShapeFromIRI(iri, entry, context); 
+        expect(isError(resp)).resolves.toBe(true);
       });
 
-      it('should return an error given quads not representing a ShEx shape', async() => {
+      it('should return an error if the quads do not represent a ShEx shape', async() => {
         mediatorDereferenceRdf = <any>{
           mediate: jest.fn(async() => ({
             data: new ArrayIterator([
@@ -212,10 +134,11 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
+        const resp  = actor.getShapeFromIRI(iri, entry, context); 
+        await expect(isError(resp)).resolves.toBe(true);
       });
 
-      it('should return an error given quads representing multiple ShEx shapes', async() => {
+      it('should return an error if the quads represent multiple ShEx shapes', async() => {
         const shexj = `{
           "type" : "Schema",
           "shapes" : [
@@ -258,7 +181,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getShapeFromIRI(iri, entry, context)).resolves.toBeInstanceOf(Error);
+        const resp  = actor.getShapeFromIRI(iri, entry, context); 
+        await expect(isError(resp)).resolves.toBe(true);
       });
 
       it('should return a shape given quads representing a ShEx shapes', async() => {
@@ -295,9 +219,9 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(resp).not.toBeInstanceOf(Error);
-        const [ shape, respEntry ] = <[IShape, string]>resp;
+        const resp = await actor.getShapeFromIRI(iri, entry, context); 
+        expect(isResult(resp)).resolves.toBe(true);
+        const {value: [ shape, respEntry ]} = <IResultInterface<[IShape, string]> >resp;
         expect(respEntry).toBe(entry);
         expect(shape.name).toBe(iri);
         expect(shape.closed).toBe(false);

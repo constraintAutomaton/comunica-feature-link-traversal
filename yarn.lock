@@ -15119,10 +15119,9 @@ restore-cursor@^3.1.0:
     onetime "^5.1.0"
     signal-exit "^3.0.2"
 
-result-interface@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/result-interface/-/result-interface-2.0.0.tgz#7f09ce4e231509c046d8885e22b847e10bf7e944"
-  integrity sha512-FD+Ei9KoZOG2i2EtR96bUBXPHoIxt3zdfVS43wyAmiJqSjhsRghQc/XwwA0HZJyKg9H4jbSx+/YwB3L2MDrhAA==
+"result-interface@git+https://github.com/constraintAutomaton/result-interface-ts.git":
+  version "2.1.0"
+  resolved "git+https://github.com/constraintAutomaton/result-interface-ts.git#37bb25fdee9e973d725a810f69f4a70a22b0c082"
 
 ret@~0.1.10:
   version "0.1.15"
