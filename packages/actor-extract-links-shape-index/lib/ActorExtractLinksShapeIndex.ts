@@ -23,7 +23,7 @@ import type {
   IShape,
 } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
-import { isError, result, error, isResult, safePromise, type Result, type SafePromise } from 'result-interface/src/index';
+import { isError, result, error, isResult, safePromise, type Result, type SafePromise } from 'result-interface';
 import type { Algebra } from 'sparqlalgebrajs';
 
 const DF = new DataFactory<RDF.BaseQuad>();
@@ -249,7 +249,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         resolve(result(links));
       });
 
-      response.value.data.on('error', (err) => {
+      response.value.data.on('error', (err: Error) => {
         resolve(error(err));
       });
     });
@@ -324,7 +324,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         }
       }
 
-      this.filters.set(`${shapeIndex.domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
+      this.filters.set(`${shapeIndex.subweb.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`, (link: ILink): boolean => {
         const metadata = link.metadata;
         if (metadata !== undefined && metadata[PRODUCED_BY_ACTOR]?.name === this.name) {
           return false;
@@ -333,7 +333,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         if (this.linkProduced.has(link.url)) {
           return false;
         }
-        const isInDomain = shapeIndex.domain.test(link.url);
+        const isInDomain = shapeIndex.subweb.test(link.url);
         return isInDomain;
       });
     }
@@ -369,7 +369,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         this.fillShapeIndexInformation(quad, shapeIndexIri, shapeIndexInformation);
       });
 
-      response.value.data.on('error', (err) => {
+      response.value.data.on('error', (err: Error) => {
         resolve(error(err));
       });
       // I don't see a simple alternative
@@ -462,7 +462,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   ): IShapeIndex {
     const shapeIndex: IShapeIndex = {
       isComplete,
-      domain: new RegExp(domain, 'u'),
+      subweb: new RegExp(domain, 'u'),
       entries: new Map(),
     };
     for (const res of results) {
@@ -575,7 +575,7 @@ type IFilteredIndexEntries = Readonly<{
 /**
  * The target of a shape index
  */
-type IShapeIndexTarget = Readonly<{
+export type IShapeIndexTarget = Readonly<{
   isAContainer: boolean;
   iri: string;
 }>;
@@ -583,17 +583,17 @@ type IShapeIndexTarget = Readonly<{
 /**
  * A shape index
  */
-interface IShapeIndex {
+export type IShapeIndex = Readonly<{
   isComplete: boolean;
-  domain: RegExp;
+  subweb: RegExp;
   // Iri by IShapeIndexEntry
   entries: Map<string, IShapeIndexEntry>;
-}
+}>;
 
 /**
  * The entry of a shape index
  */
-type IShapeIndexEntry = Readonly<{
+export type IShapeIndexEntry = Readonly<{
   isAContainer: boolean;
   iri: string;
   shape: IShape;
@@ -610,3 +610,48 @@ interface IShapeIndexInformation {
   bindingShapes: Map<string, string>;
   targets: Map<string, IShapeIndexTarget>;
 }
+
+export function isShapeIndex(shapeIndex: unknown): shapeIndex is IShapeIndex {
+  if (shapeIndex === undefined || shapeIndex === null || !(shapeIndex instanceof Object)) {
+    return false
+  }
+  if (!("isComplete" in shapeIndex && "subweb" in shapeIndex && "entries" in shapeIndex)) {
+    return false;
+  }
+  if (!(shapeIndex.isComplete instanceof Boolean)) {
+    return false;
+  }
+  if (!(shapeIndex.subweb instanceof RegExp)) {
+    return false;
+  }
+  if (!(shapeIndex.entries instanceof Map)) {
+    return false;
+  }
+  for (const [key, value] of shapeIndex.entries) {
+    if (!(key instanceof String)) {
+      return false;
+    }
+    if (!isIShapeEntry(value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// can be more extensive by validating the shape.
+function isIShapeEntry(entry: unknown): entry is IShapeIndexEntry {
+  if (entry === undefined || entry === null || !(entry instanceof Object)) {
+    return false;
+  }
+  if (!("isAContainer" in entry && "iri" in entry && "shape" in entry)) {
+    return false;
+  }
+  if (!(entry.isAContainer instanceof Boolean)) {
+    return false;
+  }
+  if (!(entry.iri instanceof String)) {
+    return false;
+  }
+  return true;
+}
+
