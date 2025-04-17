@@ -20,7 +20,9 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
         });
       });
       it('should test', async() => {
-        await expect(actor.test({ firstUrl: 'first', context: new ActionContext() })).resolves.toStrictEqual(passTestVoid());
+        await expect(actor.test({ firstUrl: 'first', context: new ActionContext() }))
+          .resolves
+          .toStrictEqual(passTestVoid());
       });
 
       it('should not test when called recursively', async() => {
@@ -29,7 +31,7 @@ describe('ActorRdfResolveHypermediaLinksQueueWrapperFilterLinks', () => {
           context: new ActionContext({
             [KEY_CONTEXT_WRAPPED.name]: true,
           }),
-        })).rejects.toStrictEqual(failTest('Unable to wrap link queues multiple times'));
+        })).resolves.toStrictEqual(failTest('Unable to wrap link queues multiple times'));
       });
     });
 

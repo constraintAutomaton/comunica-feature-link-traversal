@@ -1,10 +1,10 @@
 import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { DataFactory } from 'rdf-data-factory';
 import { ActorExtractLinksTree } from '../lib/ActorExtractLinksTree';
 import '@comunica/utils-jest';
-import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 
 const stream = require('streamify-array');
 

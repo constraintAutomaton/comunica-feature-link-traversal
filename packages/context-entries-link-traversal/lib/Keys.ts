@@ -1,6 +1,6 @@
 import { ActionContextKey } from '@comunica/core';
 import type { AnnotateSourcesType, FilterFunction } from '@comunica/types-link-traversal';
-import { SummaryCache } from '@comunica/types-link-traversal/lib/SummaryCache';
+import type { SummaryCache } from '@comunica/types-link-traversal/lib/SummaryCache';
 
 /**
  * When adding entries to this file, also add a shortcut for them in the contextKeyShortcuts TSDoc comment in
@@ -42,5 +42,5 @@ export const KeysFilter = {
 };
 
 export const KeyCacheSummaries = {
-  summaries: new ActionContextKey<SummaryCache>('@comunica/bus-extract-links:filter'), 
-}
+  summaries: new ActionContextKey<SummaryCache>('@comunica/bus-extract-links:filter'),
+};

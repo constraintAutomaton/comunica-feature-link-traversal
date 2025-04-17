@@ -1,12 +1,12 @@
 export interface ISummary {
-    /**
-     * The unix time date of experiation
-     */
-    experiation: number;
-    /**
-     * A summary
-     */
-    summary: unknown
+  /**
+   * The unix time date of experiation
+   */
+  experiation: number;
+  /**
+   * A summary
+   */
+  summary: unknown;
 }
 
 type Subweb = string;
@@ -18,6 +18,6 @@ type SummaryMethod = string;
 export type SummaryCache = Map<SummaryMethod, SummaryCacheEntry>;
 
 /**
- * summaries entries in the cache indexed by subweb
+ * Summaries entries in the cache indexed by subweb
  */
 export type SummaryCacheEntry = Map<Subweb, ISummary>;

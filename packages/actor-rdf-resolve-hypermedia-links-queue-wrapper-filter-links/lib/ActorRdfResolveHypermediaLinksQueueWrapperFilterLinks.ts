@@ -28,7 +28,7 @@ IActorRdfResolveHypermediaLinksQueueOutput
 
   public async test(action: IActionRdfResolveHypermediaLinksQueue): Promise<TestResult<IActorTest>> {
     if (action.context.get(KEY_CONTEXT_WRAPPED)) {
-      throw failTest('Unable to wrap link queues multiple times');
+      return failTest('Unable to wrap link queues multiple times');
     }
     return passTestVoid();
   }
