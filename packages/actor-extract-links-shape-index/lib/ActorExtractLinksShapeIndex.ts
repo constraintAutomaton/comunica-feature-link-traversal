@@ -23,7 +23,7 @@ import type {
   IShape,
 } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
-import { isError, result, error, isResult, safePromise, type Result, type SafePromise } from 'result-interface';
+import { isError, result, error, isResult, safePromise, type Result, type SafePromise, IError } from 'result-interface';
 import type { Algebra } from 'sparqlalgebrajs';
 
 const DF = new DataFactory<RDF.BaseQuad>();
@@ -231,10 +231,10 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const links: ILink[] = [];
     const response = await safePromise(this.mediatorDereferenceRdf.mediate({ url: iri, context }));
     if (isError(response)) {
-      // Should be a TestResultFailed on failure
-      const failTest = <TestResultFailed>response.error;
-      return error(new Error(failTest.getFailMessage()));
+      // Should be an error on failure
+      return <IError<Error>> response;
     }
+    
     return new Promise(async (resolve) => {
       response.value.data.on('data', (quad: RDF.Quad) => {
         if (quad.predicate.equals(ActorExtractLinksShapeIndex.LDP_CONTAINS_NODE)) {
@@ -350,9 +350,8 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
   public async generateShapeIndex(shapeIndexIri: string, context: IActionContext): SafePromise<IShapeIndex> {
     const response = await safePromise(this.mediatorDereferenceRdf.mediate({ url: shapeIndexIri, context }));
     if (isError(response)) {
-      // Should be a TestResultFailed on failure
-      const failTest = <TestResultFailed>response.error;
-      return error(new Error(failTest.getFailMessage()));
+      // Should be an error on failure
+      return <IError<Error>> response;
     }
 
     return new Promise(async (resolve) => {
@@ -490,15 +489,19 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
    * @returns {SafePromise<[IShape, string]>} A shape object and the entry related to the shape
    */
   public async getShapeFromIRI(iri: string, entry: string, context: IActionContext): SafePromise<[IShape, string]> {
-    return new Promise((resolve) => {
-      this.mediatorDereferenceRdf.mediate({ url: iri, context }).then(async (response) => {
-        const shape = await shapeFromQuads(response.data, iri);
-        if (shape instanceof Error) {
-          resolve(error(shape));
-          return;
-        }
-        resolve(result([shape, entry]));
-      }, error => resolve(error));
+    const response = await safePromise(this.mediatorDereferenceRdf.mediate({ url: iri, context }));
+    if (isError(response)) {
+      // Should be an error on failure
+      return <IError<Error>> response;
+    }
+
+    return new Promise(async (resolve) => {
+      const shape = await shapeFromQuads(response.value.data, iri);
+      if (shape instanceof Error) {
+        resolve(error(shape));
+        return;
+      }
+      resolve(result([shape, entry]));
     });
   }
 

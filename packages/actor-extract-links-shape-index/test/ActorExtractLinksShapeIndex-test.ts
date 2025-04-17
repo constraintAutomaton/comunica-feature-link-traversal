@@ -10,8 +10,8 @@ import * as N3 from 'n3';
 import { type IShape, generateQuery, Shape } from 'query-shape-detection';
 import { DataFactory } from 'rdf-data-factory';
 import { translate, Factory } from 'sparqlalgebrajs';
-import { ActorExtractLinksShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
-import { isError, result, error, isResult, IResult as IResultInterface } from 'result-interface';
+import { ActorExtractLinksShapeIndex, IShapeIndex } from '../lib/ActorExtractLinksShapeIndex';
+import { isError, result, error, isResult, IResult as IResultInterface, IError } from 'result-interface';
 
 // eslint-disable-next-line import/extensions
 import * as SHEX_CONTEXT from './shex-context.json';
@@ -31,7 +31,7 @@ describe('ActorExtractLinksShapeIndex', () => {
     const cacheShapeIndexIri = false;
 
     describe('test', () => {
-      let input:any;
+      let input: any;
       let operation;
       let context;
       beforeEach(() => {
@@ -93,7 +93,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(isError(resp)).resolves.toBe(true);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an error if the mediator fail to fetch the quads', async () => {
@@ -112,7 +112,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(isError(resp)).resolves.toBe(true);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an error if the quads do not represent a ShEx shape', async () => {
@@ -135,7 +135,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(isError(resp)).resolves.toBe(true);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an error if the quads represent multiple ShEx shapes', async () => {
@@ -182,7 +182,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(isError(resp)).resolves.toBe(true);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return a shape given quads representing a ShEx shapes', async () => {
@@ -220,7 +220,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         });
 
         const resp = await actor.getShapeFromIRI(iri, entry, context);
-        expect(isResult(resp)).resolves.toBe(true);
+        expect(isResult(resp)).toBe(true);
         const { value: [shape, respEntry] } = <IResultInterface<[IShape, string]>>resp;
         expect(respEntry).toBe(entry);
         expect(shape.name).toBe(iri);
@@ -254,8 +254,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context))
-          .resolves.toThrow('the RDF type of the shape index is not defined');
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+        expect(isError(resp)).toBe(true);
+        expect((<IError>resp).error).toStrictEqual(new Error('the RDF type of the shape index is not defined'))
         expect(spy).not.toHaveBeenCalled();
       });
 
@@ -270,8 +271,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context))
-          .resolves.toThrow('the RDF type of the shape index is not defined');
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+        expect(isError(resp)).toBe(true);
+        expect((<IError>resp).error).toStrictEqual(new Error('the RDF type of the shape index is not defined'))
         expect(spy).not.toHaveBeenCalled();
       });
 
@@ -286,8 +288,9 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context))
-          .resolves.toThrow('the domain of the shape index is not defined');
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+        expect(isError(resp)).toBe(true);
+        expect((<IError>resp).error).toStrictEqual(new Error('the domain of the shape index is not defined'))
         expect(spy).not.toHaveBeenCalled();
       });
 
@@ -301,15 +304,16 @@ describe('ActorExtractLinksShapeIndex', () => {
           targets: new Map([['foo', { isAContainer: true, iri: 'target' }]]),
         };
 
-        const expectedShapeIndex: any = {
+        const expectedShapeIndex: IShapeIndex = {
           isComplete: false,
-          domain: /domain/u,
+          subweb: /domain/u,
           entries: new Map(),
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI');
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
-          .toStrictEqual(expectedShapeIndex);
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>>resp).value).toStrictEqual(expectedShapeIndex);
         expect(spy).not.toHaveBeenCalled();
       });
 
@@ -325,14 +329,17 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const expectedShapeIndex: any = {
           isComplete: true,
-          domain: /domain/u,
+          subweb: /domain/u,
           entries: new Map([['target', { isAContainer: true, iri: 'target', shape: 'shape' }]]),
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI')
-          .mockResolvedValueOnce(<any>['shape', 'foo']);
+          .mockResolvedValueOnce(<any>result(['shape', 'foo']));
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
-          .toStrictEqual(expectedShapeIndex);
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>>resp).value).toStrictEqual(expectedShapeIndex);
+
         expect(spy).toHaveBeenCalledTimes(1);
       });
 
@@ -356,7 +363,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const expectedShapeIndex: any = {
           isComplete: true,
-          domain: /domain/u,
+          subweb: /domain/u,
           entries: new Map([
             ['target', { isAContainer: true, iri: 'target', shape: 'shape' }],
             ['target1', { isAContainer: true, iri: 'target1', shape: 'shape1' }],
@@ -364,12 +371,15 @@ describe('ActorExtractLinksShapeIndex', () => {
           ]),
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI')
-          .mockResolvedValueOnce(<any>['shape', 'foo'])
-          .mockResolvedValueOnce(<any>['shape1', 'foo1'])
-          .mockResolvedValueOnce(<any>['shape2', 'foo2']);
+          .mockResolvedValueOnce(<any>result(['shape', 'foo']))
+          .mockResolvedValueOnce(<any>result(['shape1', 'foo1']))
+          .mockResolvedValueOnce(<any>result(['shape2', 'foo2']));
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
-          .toStrictEqual(expectedShapeIndex);
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>>resp).value).toStrictEqual(expectedShapeIndex);
+
         expect(spy).toHaveBeenCalledTimes(3);
       });
 
@@ -397,7 +407,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const expectedShapeIndex: any = {
           isComplete: true,
-          domain: /domain/u,
+          subweb: /domain/u,
           entries: new Map([
             ['target', { isAContainer: true, iri: 'target', shape: 'shape' }],
             ['target1', { isAContainer: true, iri: 'target1', shape: 'shape1' }],
@@ -405,12 +415,15 @@ describe('ActorExtractLinksShapeIndex', () => {
           ]),
         };
         const spy = jest.spyOn(actor, 'getShapeFromIRI')
-          .mockResolvedValueOnce(<any>['shape', 'foo'])
-          .mockResolvedValueOnce(<any>['shape1', 'foo1'])
-          .mockResolvedValueOnce(<any>['shape2', 'foo2']);
+          .mockResolvedValueOnce(<any>result(['shape', 'foo']))
+          .mockResolvedValueOnce(<any>result(['shape1', 'foo1']))
+          .mockResolvedValueOnce(<any>result(['shape2', 'foo2']));
 
-        await expect(actor.getShapeIndex(shapeIndexInformation, context)).resolves
-          .toStrictEqual(expectedShapeIndex);
+        const resp = await actor.getShapeIndex(shapeIndexInformation, context);
+
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>>resp).value).toStrictEqual(expectedShapeIndex);
+
         expect(spy).toHaveBeenCalledTimes(3);
       });
     });
@@ -437,8 +450,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           mediatorDereferenceRdf,
           cacheShapeIndexIri,
         });
-
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toBeInstanceOf(Error);
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return no shape index given an empty quad stream', async () => {
@@ -454,15 +467,15 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context))
-          .resolves.toThrow('the RDF type of the shape index is not defined');
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an error if the quad stream return an error', async () => {
         mediatorDereferenceRdf = <any>{
           mediate: jest.fn(async () => ({
             data: {
-              on(event: string, fn: (err:any) => void) {
+              on(event: string, fn: (err: any) => void) {
                 if (event === 'error') {
                   fn(new Error('foo'));
                 }
@@ -477,7 +490,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toBeInstanceOf(Error);
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it(`should return an error if unrelated triples are dereferenced`, async () => {
@@ -498,8 +512,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context))
-          .resolves.toThrow('the RDF type of the shape index is not defined');
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it(`should return a shape index`, async () => {
@@ -533,21 +547,21 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.spyOn(actor, 'getShapeFromIRI')
           .mockImplementation((iri: string, entry: string, _: any) => {
             if (iri === 'http://localhost:3000/pods/00000000000000000065/profile_shape#Profile') {
-              return <any>['shape_profile', entry];
+              return <any>result(['shape_profile', entry]);
             }
 
             if (iri === 'http://localhost:3000/pods/00000000000000000065/posts_shape#Post') {
-              return <any>['shape_post', entry];
+              return <any>result(['shape_post', entry]);
             }
 
             if (iri === 'http://localhost:3000/pods/00000000000000000065/comments_shape#Comment') {
-              return <any>['shape_comment', entry];
+              return <any>result(['shape_comment', entry]);
             }
           });
 
         const expectedShapeIndex = {
           isComplete: true,
-          domain: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
+          subweb: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
           entries: new Map([
             [
               'http://localhost:3000/pods/00000000000000000065/profile/',
@@ -576,7 +590,9 @@ describe('ActorExtractLinksShapeIndex', () => {
           ]),
         };
 
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(expectedShapeIndex);
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>> resp).value).toStrictEqual(expectedShapeIndex);
       });
 
       it(`should return a shape index with extra information`, async () => {
@@ -611,21 +627,21 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.spyOn(actor, 'getShapeFromIRI')
           .mockImplementation((iri: string, entry: string, _: any) => {
             if (iri === 'http://localhost:3000/pods/00000000000000000065/profile_shape#Profile') {
-              return <any>['shape_profile', entry];
+              return <any>result(['shape_profile', entry]);
             }
 
             if (iri === 'http://localhost:3000/pods/00000000000000000065/posts_shape#Post') {
-              return <any>['shape_post', entry];
+              return <any>result(['shape_post', entry]);
             }
 
             if (iri === 'http://localhost:3000/pods/00000000000000000065/comments_shape#Comment') {
-              return <any>['shape_comment', entry];
+              return <any>result(['shape_comment', entry]);
             }
           });
 
         const expectedShapeIndex = {
           isComplete: true,
-          domain: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
+          subweb: /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u,
           entries: new Map([
             [
               'http://localhost:3000/pods/00000000000000000065/profile/',
@@ -653,15 +669,17 @@ describe('ActorExtractLinksShapeIndex', () => {
             ],
           ]),
         };
-
-        await expect(actor.generateShapeIndex(shapeIndexIri, context)).resolves.toStrictEqual(expectedShapeIndex);
+        
+        const resp = await actor.generateShapeIndex(shapeIndexIri, context);
+        expect(isResult(resp)).toBe(true);
+        expect((<IResultInterface<IShapeIndex>> resp).value).toStrictEqual(expectedShapeIndex);
       });
     });
 
     describe('filterResourcesFromShapeIndex', () => {
       let shapeIndex: any = {};
       const context: any = {};
-      const domain = /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u;
+      const subweb = /http:\/\/localhost:3000\/pods\/00000000000000000065\/.*/u;
 
       beforeEach(() => {
         bus = new Bus({ name: 'bus' });
@@ -726,7 +744,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         shapeIndex = {
           entries,
-          domain,
+          subweb,
           isComplete: false,
         };
         jest.restoreAllMocks();
@@ -744,7 +762,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         (<any>actor).query = generateQuery(query);
         shapeIndex = {
           entries: new Map(),
-          domain: /a/u,
+          subweb: /a/u,
           isComplete: false,
         };
         const expectedFilteredResource = {
@@ -753,7 +771,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
-        expect(resp).toStrictEqual(expectedFilteredResource);
+        expect(resp.value).toStrictEqual(expectedFilteredResource);
       });
 
       it('should return an empty filtered resources object given a query targeting no properties', async () => {
@@ -781,7 +799,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
-        expect(resp).toStrictEqual(expectedFilteredResource);
+        expect(resp.value).toStrictEqual(expectedFilteredResource);
       });
 
       it('should return the correct filtered resources object given a query multiple properties', async () => {
@@ -873,7 +891,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         };
 
         const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
-        expect(resp).toStrictEqual(expectedFilteredResource);
+        expect(resp.value).toStrictEqual(expectedFilteredResource);
       });
 
       describe(' A priori knowledge of the search domain', () => {
@@ -921,9 +939,9 @@ describe('ActorExtractLinksShapeIndex', () => {
             ],
           ]);
 
-          const shapeIndex = {
+          const shapeIndex: IShapeIndex = {
             entries,
-            domain,
+            subweb,
             isComplete: true,
           };
 
@@ -951,10 +969,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           };
 
           const resp = await actor.filterResourcesFromShapeIndex(shapeIndex, context);
-          expect(resp).toStrictEqual(expectedFilteredResource);
+          expect(resp.value).toStrictEqual(expectedFilteredResource);
           expect((<any>actor).filters.size).toBe(1);
-          expect((<any>actor).filters.has(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
-          const filter = (<any>actor).filters.get(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
+          expect((<any>actor).filters.has(`${subweb.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
+          const filter = (<any>actor).filters.get(`${subweb.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
 
           const linkOutsideDomain = { url: 'foo' };
           expect(filter(linkOutsideDomain)).toBe(false);
@@ -1017,9 +1035,9 @@ describe('ActorExtractLinksShapeIndex', () => {
             ],
           ]);
 
-          const shapeIndex = {
+          const shapeIndex: IShapeIndex = {
             entries,
-            domain,
+            subweb,
             isComplete: false,
           };
 
@@ -1060,8 +1078,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           expect(resp.value.rejected.sort()).toStrictEqual(expectedFilteredResource.rejected.sort());
 
           expect((<any>actor).filters.size).toBe(1);
-          expect((<any>actor).filters.has(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
-          const filter = (<any>actor).filters.get(`${domain.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
+          expect((<any>actor).filters.has(`${subweb.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`)).toBe(true);
+          const filter = (<any>actor).filters.get(`${subweb.source}_${ActorExtractLinksShapeIndex.ADAPTATIVE_REACHABILITY_LABEL}`);
 
           const linkOutsideDomain = { url: 'foo' };
           expect(filter(linkOutsideDomain)).toBe(false);
@@ -1106,7 +1124,9 @@ describe('ActorExtractLinksShapeIndex', () => {
 
       it('should return an error given that the metadata stream return no quads', async () => {
         const metadata: any = new ArrayIterator([], { autoStart: false });
-        await expect(actor.discoverShapeIndexLocationFromTriples(metadata)).resolves.toBeInstanceOf(Error);
+        
+        const resp = await actor.discoverShapeIndexLocationFromTriples(metadata);
+        expect(isError(resp)).toBe(true);
       });
 
       it(`should return an error given that the metadata stream 
@@ -1123,7 +1143,9 @@ describe('ActorExtractLinksShapeIndex', () => {
             DF.blankNode(),
           ),
         ], { autoStart: false });
-        await expect(actor.discoverShapeIndexLocationFromTriples(metadata)).resolves.toBeInstanceOf(Error);
+
+        const resp = await actor.discoverShapeIndexLocationFromTriples(metadata);
+        expect(isError(resp)).toBe(true);
       });
 
       it(`should return the locator given that the metadata stream 
@@ -1146,8 +1168,11 @@ describe('ActorExtractLinksShapeIndex', () => {
             DF.blankNode(),
           ),
         ], { autoStart: false });
-        await expect(actor.discoverShapeIndexLocationFromTriples(metadata)).resolves
-          .toStrictEqual(shapetreeLocation);
+
+        const resp = await actor.discoverShapeIndexLocationFromTriples(metadata);
+        expect(isResult(resp)).toBe(true);
+
+        expect(resp).toStrictEqual(result(shapetreeLocation));
       });
     });
 
@@ -1173,8 +1198,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           mediatorDereferenceRdf,
           cacheShapeIndexIri,
         });
-
-        await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toBeInstanceOf(Error);
+        const resp = await actor.getResourceIriFromContainer(iri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an error given the mediator return an error', async () => {
@@ -1199,7 +1224,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toBeInstanceOf(Error);
+        const resp = await actor.getResourceIriFromContainer(iri, context);
+        expect(isError(resp)).toBe(true);
       });
 
       it('should return an empty array given the mediator return no quads', async () => {
@@ -1216,7 +1242,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toStrictEqual([]);
+        const resp = await actor.getResourceIriFromContainer(iri, context);
+        expect(isResult(resp)).toBe(true);
+
+        expect(resp).toStrictEqual(result([]));
       });
 
       it(`should return an empty array given the mediator 
@@ -1245,7 +1274,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           cacheShapeIndexIri,
         });
 
-        await expect(actor.getResourceIriFromContainer(iri, context)).resolves.toStrictEqual([]);
+        const resp = await actor.getResourceIriFromContainer(iri, context);
+        expect(isResult(resp)).toBe(true);
+
+        expect(resp).toStrictEqual(result([]));
       });
 
       it(`should return the iri of resource inside a container`, async () => {
@@ -1294,8 +1326,10 @@ describe('ActorExtractLinksShapeIndex', () => {
           return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: linkPriority } };
         });
 
-        await expect(actor.getResourceIriFromContainer(iri, context)).resolves
-          .toStrictEqual(expectedIris);
+        const resp = await actor.getResourceIriFromContainer(iri, context);
+        expect(isResult(resp)).toBe(true);
+
+        expect(resp).toStrictEqual(result(expectedIris));
       });
     });
 
@@ -1331,8 +1365,9 @@ describe('ActorExtractLinksShapeIndex', () => {
           accepted: [],
           rejected,
         };
-        await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
-          .toStrictEqual([]);
+
+        const resp = await actor.getIrisFromAcceptedEntries(filteredResources, context);
+        expect(resp).toStrictEqual(result([]));
       });
 
       it('should return iris given the accepted filters contain only non containers entries', async () => {
@@ -1365,8 +1400,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           return { url: value.iri, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined } };
         });
 
-        await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
-          .toStrictEqual(expectedIri);
+        const resp = await actor.getIrisFromAcceptedEntries(filteredResources, context);
+        expect(resp).toStrictEqual(result(expectedIri));
       });
 
       it(`should return iris given the accepted filters contain containers entry 
@@ -1406,8 +1441,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           { url: 'foo2', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: linkPriority } },
         ];
 
-        await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
-          .toStrictEqual(expectedIri);
+        const resp = await actor.getIrisFromAcceptedEntries(filteredResources, context);
+        expect(resp).toStrictEqual(result(expectedIri));
         expect(spy).toHaveBeenCalledTimes(1);
       });
 
@@ -1451,8 +1486,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }, priority: undefined } };
         });
 
-        await expect(actor.getIrisFromAcceptedEntries(filteredResources, context)).resolves
-          .toStrictEqual(expectedIri);
+        const resp = await actor.getIrisFromAcceptedEntries(filteredResources, context);
+        expect(resp).toStrictEqual(result(expectedIri));
         expect(spy).toHaveBeenCalledTimes(2);
       });
     });
@@ -1687,7 +1722,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
         spyGenerateShapeIndex.mockImplementation(() => {
           return new Promise((resolve) => {
-            resolve(<any>'');
+            resolve(<any>result(''));
           });
         });
 
@@ -1716,7 +1751,8 @@ describe('ActorExtractLinksShapeIndex', () => {
           },
         };
 
-        await expect(actor.run(action)).resolves.toStrictEqual({ links: [] });
+        const resp = await actor.run(action);
+        expect(resp).toStrictEqual({ links: [] });
         expect(actor.getFilters().has('a')).toBe(true);
       });
 
@@ -1730,7 +1766,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValueOnce(result('foo'));
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValueOnce(result({ isComplete: false, domain: /.*/u, entries: new Map() }));
+        spyGenerateShapeIndex.mockResolvedValueOnce(result({ isComplete: false, subweb: /.*/u, entries: new Map() }));
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockResolvedValueOnce(result({
           accepted: [],
           rejected: [],
@@ -1770,7 +1806,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         const spyDiscover = jest.spyOn(actor, 'discoverShapeIndexLocationFromTriples');
         spyDiscover.mockResolvedValue(result('foo'));
         const spyGenerateShapeIndex = jest.spyOn(actor, 'generateShapeIndex');
-        spyGenerateShapeIndex.mockResolvedValue(result({ isComplete: false, domain: /.*/u, entries: new Map() }));
+        spyGenerateShapeIndex.mockResolvedValue(result({ isComplete: false, subweb: /.*/u, entries: new Map() }));
         jest.spyOn(actor, 'filterResourcesFromShapeIndex').mockResolvedValueOnce(result({
           accepted: [],
           rejected: [],
@@ -1834,7 +1870,7 @@ describe('ActorExtractLinksShapeIndex', () => {
         jest.spyOn(actor, 'addRejectedEntryFilters');
         jest.spyOn(actor, 'generateShapeIndex').mockResolvedValue(result({
           isComplete: false,
-          domain: /https:\/\/example.qc.ca\/.*/u,
+          subweb: /https:\/\/example.qc.ca\/.*/u,
           entries: new Map(),
         }));
 
