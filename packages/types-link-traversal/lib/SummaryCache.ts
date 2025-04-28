@@ -2,11 +2,11 @@ export interface ISummary {
   /**
    * The unix time date of experiation
    */
-  experiation: number;
+  experiation?: number;
   /**
    * A summary
    */
-  summary: unknown;
+  summary: Readonly<unknown>;
 }
 
 type Subweb = string;

@@ -15153,10 +15153,10 @@ result-interface@^2.2.0:
   resolved "https://registry.yarnpkg.com/result-interface/-/result-interface-2.2.0.tgz#114c92b122a5c02af264eb2ea44e70f34e5f6f51"
   integrity sha512-7zdm0e0C1f0iB4QldyG90ryIy7slE/KMjQlRGd3lzUtHOLRLyW9MQCmLo/5QTrihiGunn59Fuao7NvxfZ6972Q==
 
-result-interface@^2.2.1:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/result-interface/-/result-interface-2.2.1.tgz#e226501bdd6f9fb0ea6a9a593978fff31a39636d"
-  integrity sha512-oKEheomF763W8EV0/iB2Qnegk+IShKIfksOObV0mX6EDqTgmfQJB02HwAQho/bra1OFfRUjR/D1YXdU/asq7pQ==
+result-interface@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/result-interface/-/result-interface-2.3.1.tgz#bb51ab6438115aa3d80ed349457acec9b886e463"
+  integrity sha512-M4s1Z5mHbblJp2nt6pAco334BX66zhoRIPzhta1AwmjCUr/UF+pv48BLucPz5KZGqNMgShifbf13d9sua9JSJQ==
 
 ret@~0.1.10:
   version "0.1.15"

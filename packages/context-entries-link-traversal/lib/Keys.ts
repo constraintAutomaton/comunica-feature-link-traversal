@@ -42,5 +42,5 @@ export const KeysFilter = {
 };
 
 export const KeyCacheSummaries = {
-  summaries: new ActionContextKey<SummaryCache>('@comunica/bus-extract-links:filter'),
+  summaries: new ActionContextKey<SummaryCache>('@comunica/bus-extract-links:summary-cache'),
 };

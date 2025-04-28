@@ -44,7 +44,7 @@
     "@comunica/types-link-traversal": "^0.6.0",
     "query-shape-detection": "^0.2.9",
     "rdf-data-factory": "^1.1.2",
-    "result-interface": "^2.2.1"
+    "result-interface": "^2.3.1"
   },
   "devDependencies": {
     "jsonld-context-parser": "^3.0.0",
