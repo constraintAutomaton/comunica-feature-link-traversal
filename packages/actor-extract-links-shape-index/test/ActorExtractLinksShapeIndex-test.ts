@@ -19,6 +19,7 @@ import { ActorExtractLinksShapeIndex, isShapeIndex } from '../lib/ActorExtractLi
 
 // eslint-disable-next-line import/extensions
 import * as SHEX_CONTEXT from './shex-context.json';
+import { ShapeIndexSummary } from '../lib/ShapeIndexSummary';
 
 const quad = require('rdf-quad');
 const stream = require('streamify-array');
@@ -2163,7 +2164,7 @@ describe('ActorExtractLinksShapeIndex', () => {
     });
 
     describe(ActorExtractLinksShapeIndex.cacheShapeIndex, () => {
-      const a_shape_index: Readonly<IShapeIndex> = {
+      const a_shape_index: IShapeIndex = {
         isComplete: true,
         subweb: /subweb/u,
         entries: new Map(),
@@ -2186,7 +2187,7 @@ describe('ActorExtractLinksShapeIndex', () => {
           [
             ActorExtractLinksShapeIndex.SHAPE_INDEX_SUMMARY_METHOD_LABEL,
             new Map([
-              [ 'subweb', { summary: a_shape_index }],
+              [ 'subweb', new ShapeIndexSummary(a_shape_index)],
             ]),
           ],
         ]);
@@ -2198,9 +2199,9 @@ describe('ActorExtractLinksShapeIndex', () => {
       it('should add a shape index with a cache with shape indexes entries', () => {
         const initialCache: SummaryCache = new Map([
           [ ActorExtractLinksShapeIndex.SHAPE_INDEX_SUMMARY_METHOD_LABEL, new Map([
-            [ '1', { summary: a_shape_index }],
+            [ '1', new ShapeIndexSummary(a_shape_index)],
           ]) ],
-          [ 'foo', new Map([[ '2', { summary: a_shape_index }]]) ],
+          [ 'foo', new Map([[ '2', new ShapeIndexSummary(a_shape_index)]]) ],
         ]);
         const context = new ActionContext({
           [KeyCacheSummaries.summaries.name]: initialCache,
@@ -2208,10 +2209,10 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const expectedCache: SummaryCache = new Map([
           [ ActorExtractLinksShapeIndex.SHAPE_INDEX_SUMMARY_METHOD_LABEL, new Map([
-            [ 'subweb', { summary: a_shape_index }],
-            [ '1', { summary: a_shape_index }],
+            [ 'subweb', new ShapeIndexSummary(a_shape_index)],
+            [ '1', new ShapeIndexSummary(a_shape_index)],
           ]) ],
-          [ 'foo', new Map([[ '2', { summary: a_shape_index }]]) ],
+          [ 'foo', new Map([[ '2', new ShapeIndexSummary(a_shape_index)]]) ],
         ]);
 
         expect(ActorExtractLinksShapeIndex.cacheShapeIndex(a_shape_index, context)).toBe(true);
@@ -2221,7 +2222,7 @@ describe('ActorExtractLinksShapeIndex', () => {
 
       it('should add a shape index with a cache with summary entry', () => {
         const initialCache: SummaryCache = new Map([
-          [ 'foo', new Map([[ '2', { summary: a_shape_index }]]) ],
+          [ 'foo', new Map([[ '2', new ShapeIndexSummary(a_shape_index)]]) ],
         ]);
         const context = new ActionContext({
           [KeyCacheSummaries.summaries.name]: initialCache,
@@ -2229,9 +2230,9 @@ describe('ActorExtractLinksShapeIndex', () => {
 
         const expectedCache: SummaryCache = new Map([
           [ ActorExtractLinksShapeIndex.SHAPE_INDEX_SUMMARY_METHOD_LABEL, new Map([
-            [ 'subweb', { summary: a_shape_index }],
+            [ 'subweb', new ShapeIndexSummary(a_shape_index)],
           ]) ],
-          [ 'foo', new Map([[ '2', { summary: a_shape_index }]]) ],
+          [ 'foo', new Map([[ '2', new ShapeIndexSummary(a_shape_index)]]) ],
         ]);
 
         expect(ActorExtractLinksShapeIndex.cacheShapeIndex(a_shape_index, context)).toBe(true);

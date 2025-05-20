@@ -26,6 +26,7 @@ import { DataFactory } from 'rdf-data-factory';
 import { isError, result, error, isResult, safePromise } from 'result-interface';
 import type { IError, Result, SafePromise } from 'result-interface';
 import type { Algebra } from 'sparqlalgebrajs';
+import { ShapeIndexSummary } from './ShapeIndexSummary';
 
 const DF = new DataFactory<RDF.BaseQuad>();
 
@@ -100,13 +101,13 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       action.context = action.context.set(KeysFilter.filters, filters);
       try {
         this.query = generateQuery(query);
-      } catch {}
+      } catch { }
     }
 
     if (filters?.size === 0) {
       try {
         this.query = generateQuery(query);
-      } catch {}
+      } catch { }
     }
 
     this.filters = filters;
@@ -205,7 +206,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     const irisFromContainers = await Promise.all(promises);
     for (const irisResp of irisFromContainers) {
       if (isResult(irisResp)) {
-        links = [ ...links, ...irisResp.value ];
+        links = [...links, ...irisResp.value];
       }
     }
     return result(links);
@@ -289,7 +290,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       rejected: [],
     };
     if (this.query !== undefined) {
-      const { value: [ shapes, decidingShapes ] } = await this.getShapesFromShapeIndex(shapeIndex, context);
+      const { value: [shapes, decidingShapes] } = await this.getShapesFromShapeIndex(shapeIndex, context);
 
       const resultsReport: IResult = solveShapeQueryContainment({
         query: this.query,
@@ -298,7 +299,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       });
 
       const mapResult: Map<string, boolean> = new Map();
-      for (const [ starPatternName, result ] of resultsReport.starPatternsContainment) {
+      for (const [starPatternName, result] of resultsReport.starPatternsContainment) {
         for (const target of result.target ?? []) {
           const starPattern = this.query.starPatterns.get(starPatternName)!;
           mapResult.set(target, starPattern.isVariable);
@@ -368,7 +369,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
       });
       // I don't see a simple alternative
       // eslint-disable-next-line ts/no-misused-promises
-      response.value.data.on('end', async() => {
+      response.value.data.on('end', async () => {
         const shapeIndex = await this.getShapeIndex(shapeIndexInformation, context);
         resolve(shapeIndex);
       });
@@ -462,7 +463,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     for (const res of results) {
       // We simply don't add to the index shapes that are not available or invalid
       if (isResult(res)) {
-        const [ shape, entryIndex ] = res.value;
+        const [shape, entryIndex] = res.value;
         const target = targets.get(entryIndex);
         if (target !== undefined) {
           const entry: IShapeIndexEntry = {
@@ -495,7 +496,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         resolve(error(shape));
         return;
       }
-      resolve(result([ shape, entry ]));
+      resolve(result([shape, entry]));
     });
   }
 
@@ -514,9 +515,9 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
     }
 
     const cacheByEntry = cacheBySummaries.get(this.SHAPE_INDEX_SUMMARY_METHOD_LABEL);
-    const newEntry: [string, ISummary] = [ shapeIndex.subweb.source, { summary: shapeIndex }];
+    const newEntry: [string, ISummary<IShapeIndex>] = [shapeIndex.subweb.source,  new ShapeIndexSummary(shapeIndex)];
     if (cacheByEntry === undefined) {
-      const cache: SummaryCacheEntry = new Map([ newEntry ]);
+      const cache: SummaryCacheEntry<IShapeIndex> = new Map([newEntry]);
       cacheBySummaries.set(this.SHAPE_INDEX_SUMMARY_METHOD_LABEL, cache);
       return true;
     }
@@ -561,7 +562,7 @@ export class ActorExtractLinksShapeIndex extends ActorExtractLinks {
         shapes.set(shape.value[0].name, shape.value[0]);
       }
     }
-    return result([[ ...shapes.values() ], shapesFromIndexName ]);
+    return result([[...shapes.values()], shapesFromIndexName]);
   }
 }
 
