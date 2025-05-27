@@ -44,3 +44,7 @@ export const KeysFilter = {
 export const KeyCacheSummaries = {
   summaries: new ActionContextKey<SummaryCache>('@comunica/bus-extract-links:summary-cache'),
 };
+
+export const KeysInitQueryLTQP = {
+  materializedSummaries: new ActionContextKey<boolean>('@comunica/actor-init-query:materialized-summaries'),
+}

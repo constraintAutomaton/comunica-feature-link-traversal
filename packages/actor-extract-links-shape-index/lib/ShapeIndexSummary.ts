@@ -8,7 +8,7 @@ export class ShapeIndexSummary implements ISummary<IShapeIndex> {
       this.summary = summary;
     }
   
-    public toJson(): Record<string, any> {
+    public toJson():  Record<string, any>  {
       const obj: Record<string, any> = {
         ...this.summary,
         subweb: this.summary.subweb.source,
