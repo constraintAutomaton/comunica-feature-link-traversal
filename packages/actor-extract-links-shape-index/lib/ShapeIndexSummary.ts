@@ -1,4 +1,4 @@
-import { ISummary } from "@comunica/types-link-traversal";
+import { ISummary, } from "@comunica/types-link-traversal";
 import { IShapeIndex } from "./ActorExtractLinksShapeIndex";
 
 export class ShapeIndexSummary implements ISummary<IShapeIndex> {

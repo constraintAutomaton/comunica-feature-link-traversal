@@ -14,7 +14,11 @@
     "MetadataValidationState",
     "LinkQueueFilterLinks",
     "LinkQueueSaveOnDiskInfo",
-    "ILink"
+    "ILink",
+    "IShapeIndexTarget",
+    "IShapeIndex",
+    "IShapeIndexEntry",
+    "ShapeIndexSummary"
   ],
   "modulePrefix": {}
 }

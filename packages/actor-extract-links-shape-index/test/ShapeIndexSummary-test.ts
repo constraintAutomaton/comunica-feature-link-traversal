@@ -1,5 +1,5 @@
 import { Shape } from "query-shape-detection";
-import { IShapeIndex } from "../lib/ActorExtractLinksShapeIndex";
+import { IShapeIndex } from "../lib/util-interface";
 import { ShapeIndexSummary } from "../lib/ShapeIndexSummary";
 
 describe(ShapeIndexSummary.name, () => {
