@@ -5,15 +5,14 @@ const configPath = '/home/bryanelliott/Documents/PhD/coding/shapeIndexExperiment
 const myEngine = await new QueryEngineFactory().create({ configPath });
 
 const query = `
-PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-SELECT ?tagName (COUNT(?message) AS ?messages) WHERE {
-  ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me>;
-    snvoc:hasTag ?tag.
-  ?tag foaf:name ?tagName.
+PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
+SELECT DISTINCT ?firstName ?lastName WHERE {
+  ?message snvoc:hasCreator <http://localhost:3000/pods/00000000000000000933/profile/card#me>.
+  ?forum snvoc:containerOf ?message;
+    snvoc:hasModerator ?moderator.
+  ?moderator snvoc:firstName ?firstName;
+    snvoc:lastName ?lastName.
 }
-GROUP BY ?tagName
-ORDER BY DESC (?messages)
 `;
 
 const streamProvider = new BunyanStreamProviderStdout({ level: 'info' });
@@ -30,6 +29,4 @@ const bindingsStream = await myEngine.queryBindings(query, {
 });
 
 const bindings = await bindingsStream.toArray();
-for (const binding of bindings) {
-  console.log(binding.toString());
-}
+console.log(`there are ${bindings.length} results`)
