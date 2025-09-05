@@ -1,0 +1,4 @@
+[submodule "base-comunica"]
+	path = base-comunica
+	url = https://github.com/constraintAutomaton/comunica.git
+	branch = feature/ltqp-federated-interpretation
