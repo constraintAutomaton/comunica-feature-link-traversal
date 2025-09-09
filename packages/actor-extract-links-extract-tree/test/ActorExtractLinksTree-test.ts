@@ -1,5 +1,6 @@
 import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { DataFactory } from 'rdf-data-factory';
 import { ActorExtractLinksTree } from '../lib/ActorExtractLinksTree';
@@ -57,7 +58,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
     });
 
     it('should return the links of a TREE with multiple relations', async() => {
@@ -80,9 +81,11 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
 
     it('should return the links of a TREE with one complex relation', async() => {
@@ -100,7 +103,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+      expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
     });
 
     it('should return the links of a TREE with multiple relations combining blank nodes and named nodes', async() => {
@@ -122,9 +125,11 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
 
     it(`should return the links of a TREE with when there is a root type`, async() => {
@@ -153,7 +158,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -182,7 +187,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -214,7 +219,7 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
         const result = await actor.run(action);
 
-        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { producedByActor: { name: actor.name }}}]});
+        expect(result).toEqual({ links: [{ url: expectedUrl, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}}]});
       }
     });
 
@@ -241,18 +246,18 @@ describe('ActorExtractLinksExtractLinksTree', () => {
 
       const result = await actor.run(action);
 
-      expect(result).toEqual({ links: expectedUrl.map((value) => {
-        return { url: value, metadata: { producedByActor: { name: actor.name }}};
-      }) });
+      expect(result).toEqual({
+        links: expectedUrl.map((value) => {
+          return { url: value, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name }}};
+        }),
+      });
     });
   });
-  describe('The ActorExtractLinksExtractLinksTree test method', () => {
-    let actor: ActorExtractLinksTree;
-    const treeUrl = 'ex:s';
 
-    beforeEach(() => {
-      actor = new ActorExtractLinksTree({ name: 'actor', bus });
-    });
+  describe('test', () => {
+    bus = new Bus({ name: 'bus' });
+    const actor: ActorExtractLinksTree = new ActorExtractLinksTree({ name: 'actor', bus });
+    const treeUrl = 'ex:s';
 
     it('should test when giving a TREE', async() => {
       const input = stream([

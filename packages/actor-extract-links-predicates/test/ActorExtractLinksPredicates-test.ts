@@ -1,5 +1,6 @@
 import type { Readable } from 'node:stream';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { ActorExtractLinksPredicates } from '../lib/ActorExtractLinksPredicates';
 import '@comunica/utils-jest';
 
@@ -35,79 +36,80 @@ describe('ActorExtractLinksTraversePredicates', () => {
         quad('ex:s2', 'http://www.w3.org/ns/ldp#contains', 'ex:r3'),
       ]);
     });
-
-    it('should test ', async() => {
-      await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
-        .resolves.toPassTestVoid();
-    });
-
-    it('should run on a stream and return all ldp:contains values', async() => {
-      await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
-        .toEqual({
-          links: [
-            { url: 'ex:r1' },
-            { url: 'ex:r2' },
-          ].map((link) => {
-            return {
-              ...link,
-              metadata: {
-                producedByActor: {
-                  name: actor.name,
-                  predicates: predicateRegexes,
-                  matchingPredicate: 'http://www.w3.org/ns/ldp#contains',
-                  checkSubject: true,
-                },
-              },
-            };
-          }),
-        });
-    });
-  });
-
-  describe('An ActorExtractLinksTraversePredicates instance without check subject', () => {
-    let actor: ActorExtractLinksPredicates;
-    let input: Readable;
-    let predicateRegexes: string[];
-
-    beforeEach(() => {
-      predicateRegexes = [
-        'http://www.w3.org/ns/ldp#contains',
-      ];
-      actor = new ActorExtractLinksPredicates({
-        name: 'actor',
-        bus,
-        checkSubject: false,
-        predicateRegexes,
+    describe('test', () => {
+      it('should test ', async() => {
+        await expect(actor.test({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() }))
+          .resolves.toPassTestVoid();
       });
-      input = stream([
-        quad('ex:s', 'http://www.w3.org/ns/ldp#contains', 'ex:r1', 'ex:gx'),
-        quad('ex:s', 'http://www.w3.org/ns/ldp#contains', 'ex:r2'),
-        quad('ex:s', 'ex:px', 'ex:r3'),
-        quad('ex:s2', 'http://www.w3.org/ns/ldp#contains', 'ex:r3'),
-      ]);
+
+      it('should run on a stream and return all ldp:contains values', async() => {
+        await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
+          .toEqual({
+            links: [
+              { url: 'ex:r1' },
+              { url: 'ex:r2' },
+            ].map((link) => {
+              return {
+                ...link,
+                metadata: {
+                  [PRODUCED_BY_ACTOR]: {
+                    name: actor.name,
+                    predicates: predicateRegexes,
+                    matchingPredicate: 'http://www.w3.org/ns/ldp#contains',
+                    checkSubject: true,
+                  },
+                },
+              };
+            }),
+          });
+      });
     });
 
-    it('should run on a stream and return all ldp:contains values', async() => {
-      await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
-        .toEqual({
-          links: [
-            { url: 'ex:r1' },
-            { url: 'ex:r2' },
-            { url: 'ex:r3' },
-          ].map((link) => {
-            return {
-              ...link,
-              metadata: {
-                producedByActor: {
-                  name: actor.name,
-                  predicates: predicateRegexes,
-                  matchingPredicate: 'http://www.w3.org/ns/ldp#contains',
-                  checkSubject: false,
-                },
-              },
-            };
-          }),
+    describe('An ActorExtractLinksTraversePredicates instance without check subject', () => {
+      let actor: ActorExtractLinksPredicates;
+      let input: Readable;
+      let predicateRegexes: string[];
+
+      beforeEach(() => {
+        predicateRegexes = [
+          'http://www.w3.org/ns/ldp#contains',
+        ];
+        actor = new ActorExtractLinksPredicates({
+          name: 'actor',
+          bus,
+          checkSubject: false,
+          predicateRegexes,
         });
+        input = stream([
+          quad('ex:s', 'http://www.w3.org/ns/ldp#contains', 'ex:r1', 'ex:gx'),
+          quad('ex:s', 'http://www.w3.org/ns/ldp#contains', 'ex:r2'),
+          quad('ex:s', 'ex:px', 'ex:r3'),
+          quad('ex:s2', 'http://www.w3.org/ns/ldp#contains', 'ex:r3'),
+        ]);
+      });
+
+      it('should run on a stream and return all ldp:contains values', async() => {
+        await expect(actor.run({ url: 'ex:s', metadata: input, requestTime: 0, context: new ActionContext() })).resolves
+          .toEqual({
+            links: [
+              { url: 'ex:r1' },
+              { url: 'ex:r2' },
+              { url: 'ex:r3' },
+            ].map((link) => {
+              return {
+                ...link,
+                metadata: {
+                  [PRODUCED_BY_ACTOR]: {
+                    name: actor.name,
+                    predicates: predicateRegexes,
+                    matchingPredicate: 'http://www.w3.org/ns/ldp#contains',
+                    checkSubject: false,
+                  },
+                },
+              };
+            }),
+          });
+      });
     });
   });
 });

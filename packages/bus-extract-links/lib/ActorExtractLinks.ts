@@ -89,6 +89,6 @@ TS
 >;
 
 export type MediatorExtractLinks = Mediate<
-IActionExtractLinks,
-IActorExtractLinksOutput
+  IActionExtractLinks,
+  IActorExtractLinksOutput
 >;

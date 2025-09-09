@@ -4,6 +4,7 @@ import { KeysQueryOperation } from '@comunica/context-entries';
 import type { IActorArgs, IActorTest, TestResult } from '@comunica/core';
 import { failTest, passTestVoid } from '@comunica/core';
 import type { IActionContext } from '@comunica/types';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { filterQuadTermNames, getNamedNodes, getTerms, matchPatternComplete } from 'rdf-terms';
 import type { Algebra } from 'sparqlalgebrajs';
 
@@ -45,7 +46,7 @@ export class ActorExtractLinksQuadPattern extends ActorExtractLinks {
               if (quad[quadTermName].termType === 'NamedNode') {
                 links.push({
                   url: quad[quadTermName].value,
-                  metadata: { producedByActor: { name: this.name, onlyVariables: true }},
+                  metadata: { [PRODUCED_BY_ACTOR]: { name: this.name, onlyVariables: true }},
                 });
               }
             }
@@ -57,7 +58,7 @@ export class ActorExtractLinksQuadPattern extends ActorExtractLinks {
             for (const link of getNamedNodes(getTerms(quad))) {
               links.push({
                 url: link.value,
-                metadata: { producedByActor: { name: this.name, onlyVariables: false }},
+                metadata: { [PRODUCED_BY_ACTOR]: { name: this.name, onlyVariables: false }},
               });
             }
           }

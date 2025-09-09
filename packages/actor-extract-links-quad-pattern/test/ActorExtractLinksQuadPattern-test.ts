@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysQueryOperation } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import { ActorExtractLinksQuadPattern } from '../lib/ActorExtractLinksQuadPattern';
@@ -68,70 +69,71 @@ describe('ActorExtractLinksQuadPattern', () => {
       await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toFailTest('Actor actor can only work in the context of a quad pattern.');
     });
+    describe('test', () => {
+      it('should fail to test with query operation of wrong type in context', async() => {
+        context = new ActionContext({ [KeysQueryOperation.operation.name]: FACTORY.createBgp([]) });
+        await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves
+          .toFailTest('Actor actor can only work in the context of a quad pattern.');
+      });
 
-    it('should fail to test with query operation of wrong type in context', async() => {
-      context = new ActionContext({ [KeysQueryOperation.operation.name]: FACTORY.createBgp([]) });
-      await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves
-        .toFailTest('Actor actor can only work in the context of a quad pattern.');
+      it('should test with quad pattern query operation in context', async() => {
+        await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves.toPassTestVoid();
+      });
+
+      it('should run on a stream and return urls matching the pattern', async() => {
+        await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+          .toEqual({
+            links: [
+              { url: 'ex:s2' },
+              { url: 'ex:p' },
+              { url: 'ex:g' },
+              { url: 'ex:s4' },
+              { url: 'ex:p' },
+              { url: 'ex:o4' },
+              { url: 'ex:g' },
+            ].map((link) => {
+              return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
+            }),
+          });
+      });
     });
 
-    it('should test with quad pattern query operation in context', async() => {
-      await expect(actor.test({ url: '', metadata: input, requestTime: 0, context })).resolves.toPassTestVoid();
-    });
+    describe('An ActorExtractLinksQuadPattern instance with onlyVariables true', () => {
+      let actor: ActorExtractLinksQuadPattern;
+      let input: Readable;
+      let pattern: any;
+      let context: ActionContext;
 
-    it('should run on a stream and return urls matching the pattern', async() => {
-      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
-        .toEqual({
-          links: [
-            { url: 'ex:s2' },
-            { url: 'ex:p' },
-            { url: 'ex:g' },
-            { url: 'ex:s4' },
-            { url: 'ex:p' },
-            { url: 'ex:o4' },
-            { url: 'ex:g' },
-          ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
-          }),
-        });
-    });
-  });
+      beforeEach(() => {
+        actor = new ActorExtractLinksQuadPattern({ name: 'actor', bus, onlyVariables: true });
+        input = stream([
+          quad('ex:s1', 'ex:px', 'ex:o1', 'ex:gx'),
+          quad('ex:s2', 'ex:p', '"o"', 'ex:g'),
+          quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
+          quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
+          quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
+        ]);
+        pattern = FACTORY.createPattern(
+          DF.variable('s'),
+          DF.namedNode('ex:p'),
+          DF.variable('o'),
+          DF.namedNode('ex:g'),
+        );
+        context = new ActionContext({ [KeysQueryOperation.operation.name]: pattern });
+      });
 
-  describe('An ActorExtractLinksQuadPattern instance with onlyVariables true', () => {
-    let actor: ActorExtractLinksQuadPattern;
-    let input: Readable;
-    let pattern: any;
-    let context: ActionContext;
-
-    beforeEach(() => {
-      actor = new ActorExtractLinksQuadPattern({ name: 'actor', bus, onlyVariables: true });
-      input = stream([
-        quad('ex:s1', 'ex:px', 'ex:o1', 'ex:gx'),
-        quad('ex:s2', 'ex:p', '"o"', 'ex:g'),
-        quad('ex:s3', 'ex:px', 'ex:o3', 'ex:gx'),
-        quad('ex:s4', 'ex:p', 'ex:o4', 'ex:g'),
-        quad('ex:s5', 'ex:p', 'ex:o5', 'ex:gx'),
-      ]);
-      pattern = FACTORY.createPattern(
-        DF.variable('s'),
-        DF.namedNode('ex:p'),
-        DF.variable('o'),
-        DF.namedNode('ex:g'),
-      );
-      context = new ActionContext({ [KeysQueryOperation.operation.name]: pattern });
-    });
-
-    it('should run on a stream and return urls matching the pattern', async() => {
-      await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
-        .toEqual({
-          links: [
-            { url: 'ex:s2' },
-            { url: 'ex:s4' },
-            { url: 'ex:o4' },
-          ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: true }}};
-          }),
-        });
+      it('should run on a stream and return urls matching the pattern', async() => {
+        await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
+          .toEqual({
+            links: [
+              { url: 'ex:s2' },
+              { url: 'ex:s4' },
+              { url: 'ex:o4' },
+            ].map((link) => {
+              return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: true }}};
+            }),
+          });
+      });
     });
   });
 });

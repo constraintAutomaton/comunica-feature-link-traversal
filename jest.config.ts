@@ -1,6 +1,7 @@
 import type { Config } from '@jest/types';
 
 const config: Config.InitialOptions = {
+  extensionsToTreatAsEsm: [ '.ts' ],
   collectCoverage: true,
   coveragePathIgnorePatterns: [
     '/test/',

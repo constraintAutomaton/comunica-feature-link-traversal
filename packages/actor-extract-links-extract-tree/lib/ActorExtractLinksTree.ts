@@ -8,6 +8,7 @@ import { KeysExtractLinksTree } from '@comunica/context-entries-link-traversal';
 import type { IActorTest, TestResult } from '@comunica/core';
 import { passTestVoid } from '@comunica/core';
 import type { ILink } from '@comunica/types';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import type * as RDF from '@rdfjs/types';
 import { DataFactory } from 'rdf-data-factory';
 
@@ -70,7 +71,7 @@ export class ActorExtractLinksTree extends ActorExtractLinks {
           const subjectOfRelation = relationNodeSubject.get(nodeValue);
           if (subjectOfRelation && effectiveTreeDocumentSubject.has(subjectOfRelation)
           ) {
-            links.push({ url: link, metadata: { producedByActor: { name: this.name }}});
+            links.push({ url: link, metadata: { [PRODUCED_BY_ACTOR]: { name: this.name }}});
           }
         }
 

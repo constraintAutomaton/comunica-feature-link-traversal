@@ -1,2 +1,4 @@
 export * from './AnnotateSourcesType';
-export * from './LinkFilter';
+export * from './FilterFunctionType';
+export * from './AnnotateLinkType';
+export * from './SummaryCache';

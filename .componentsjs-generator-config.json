@@ -12,7 +12,13 @@
     "ContentPolicy",
     "BindingsStreamAdaptiveDestroy",
     "MetadataValidationState",
-    "ILink"
+    "LinkQueueFilterLinks",
+    "LinkQueueSaveOnDiskInfo",
+    "ILink",
+    "IShapeIndexTarget",
+    "IShapeIndex",
+    "IShapeIndexEntry",
+    "ShapeIndexSummary"
   ],
   "modulePrefix": {}
 }

@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import { ActorExtractLinks } from '@comunica/bus-extract-links';
 import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext, Bus } from '@comunica/core';
+import { PRODUCED_BY_ACTOR } from '@comunica/types-link-traversal';
 import { DataFactory } from 'rdf-data-factory';
 import { Factory } from 'sparqlalgebrajs';
 import {
@@ -89,7 +90,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:o4' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -123,7 +124,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:p' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -152,7 +153,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:o4' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -176,7 +177,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:o4' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -204,7 +205,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
             { url: 'ex:o4' },
             { url: 'ex:g' },
           ].map((link) => {
-            return { ...link, metadata: { producedByActor: { name: actor.name, onlyVariables: false }}};
+            return { ...link, metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: false }}};
           }),
         });
     });
@@ -274,7 +275,7 @@ describe('ActorExtractLinksQuadPatternQuery', () => {
       await expect(actor.run({ url: '', metadata: input, requestTime: 0, context })).resolves
         .toEqual({
           links: [
-            { url: 'ex:o6', metadata: { producedByActor: { name: actor.name, onlyVariables: true }}},
+            { url: 'ex:o6', metadata: { [PRODUCED_BY_ACTOR]: { name: actor.name, onlyVariables: true }}},
           ],
         });
     });

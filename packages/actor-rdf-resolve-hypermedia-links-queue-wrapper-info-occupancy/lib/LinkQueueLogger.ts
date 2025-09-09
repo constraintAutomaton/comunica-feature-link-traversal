@@ -108,7 +108,7 @@ export class LinkQueueLogger extends LinkQueueWrapper {
    * @param {ILinkQueueEvent} event - Current event
    */
   private emitEvent(event: ILinkQueueEvent): void {
-    this.logger.trace('Link queue changed', { data: { ...event, type: event.type }});
+    this.logger.info('Link queue changed', { data: { ...event, type: event.type }});
   }
 }
 
