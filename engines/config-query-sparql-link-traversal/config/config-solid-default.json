@@ -10,6 +10,9 @@
     "ccqslt:config/extract-links/actors/links-describedby.json",
     "ccqslt:config/extract-links/actors/predicates-solidstorage.json",
     "ccqslt:config/extract-links/actors/quad-pattern-query.json",
-    "ccqslt:config/extract-links/actors/solid-type-index-noinference.json"
+    "ccqslt:config/extract-links/actors/solid-type-index-noinference.json",
+
+    "ccqs:config/merge-bindings-context/source-binding-union.json",
+    "ccqslt:config/query-source-identify/actors/annotate-source.json"
   ]
 }
