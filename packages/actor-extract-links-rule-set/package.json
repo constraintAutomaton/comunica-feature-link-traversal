@@ -36,13 +36,22 @@
     "lib/**/*.js.map"
   ],
   "dependencies": {
-    "@comunica/bus-extract-links": "^0.6.0",
-    "@comunica/core": "^4.0.2",
+    "@comunica/bus-dereference-rdf": "^4.1.0",
+    "@comunica/bus-extract-links": "^0.7.0",
+    "@comunica/context-entries": "^4.1.0",
+    "@comunica/core": "^4.1.0",
+    "rdf-data-factory": "^2.0.2",
     "result-interface": "^2.3.3"
   },
   "scripts": {
     "build": "yarn run build:ts && yarn run build:components",
     "build:ts": "node \"../../node_modules/typescript/bin/tsc\"",
     "build:components": "componentsjs-generator"
+  },
+  "devDependencies": {
+    "@types/streamify-string": "^1.0.4",
+    "rdf-parse": "^4.0.0",
+    "streamify-string": "^1.0.1",
+    "@rdfjs/types": "^2.0.1"
   }
 }

@@ -34,7 +34,13 @@ const logger = new LoggerBunyan(loggerParams);
 
 const snvocPrefix = "https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/";
 const sameAs = DF.namedNode("http://www.w3.org/2002/07/owl#sameAs");
-
+/**
+ * <> a ex:ruleSheet
+ *   si:subweb "pod regex"
+ *   ex:rules _:rules
+ * _:rules ex:rule _:rule1
+ * _rule1 ex:premise 
+ */
 const debugRule = [
     DF.quad(
       DF.namedNode("http://xmlns.com/foaf/0.1/name"),

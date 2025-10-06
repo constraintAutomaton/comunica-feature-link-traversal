@@ -1,6 +1,7 @@
 import {
   ActorExtractLinks,
   IActionExtractLinks,
+  IActorExtractLinksArgs,
   IActorExtractLinksOutput,
 } from "@comunica/bus-extract-links";
 import type { MediatorDereferenceRdf } from "@comunica/bus-dereference-rdf";
@@ -35,6 +36,8 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
   );
   public static readonly RULE_SET_PREFIX = "https://exemple.com#";
+  public static readonly RULE_SET_CLASS = DF.namedNode(`${this.RULE_SET_PREFIX}RuleSet`);
+  public static readonly RULE_SET_RULE = DF.namedNode(`${this.RULE_SET_PREFIX}rule`);
   public static readonly RULE_SET_LOCATOR_NODE = DF.namedNode(
     `${this.RULE_SET_PREFIX}ruleSetLocation`
   );
@@ -147,6 +150,7 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
       const ruleSetInfo: IRuleSetInformation = {
         isRuleSet: false,
         rules: new Map(),
+        ruleDeclared: new Set()
       };
       const {
         value: { data: metadata },
@@ -162,23 +166,39 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
 
       metadata.on("end", () => {
         if (!ruleSetInfo.isRuleSet) {
-          return error("the rule set did not have the correct RDF type");
+           resolve(error("the rule set did not have the correct RDF type"));
+           return;
         }
         if (ruleSetInfo.subweb === undefined) {
-          return error("no subweb was defined to this rule set");
+          resolve(error("no subweb was defined to this rule set"));
+          return;
         }
+
+        if(ruleSetInfo.rules.size !== ruleSetInfo.ruleDeclared.size){
+          resolve(error(`${ruleSetInfo.rules.size} rule(s) was defined whereas ${ruleSetInfo.ruleDeclared.size} rule(s) was declared`))
+          return;
+        }
+
         const rules: IRule[] = [];
         for (const [key, rule] of ruleSetInfo.rules) {
+          if(!ruleSetInfo.ruleDeclared.has(key)){
+            resolve(error(`the rule ${key} was not declared`));
+            return;
+          }
+
           if (!rule.premise) {
-            return error(`the premise of ${key} was not defined`);
+             resolve(error(`the premise of ${key} was not defined`));
+             return;
           }
 
           if (!rule.inference) {
-            return error(`the inference of ${key} was not defined`);
+            resolve(error(`the inference of ${key} was not defined`));
+            return;
           }
 
           if (!rule.conclusion) {
-            return error(`the conclusion of ${key} was not defined`);
+            resolve(error(`the conclusion of ${key} was not defined`));
+            return;
           }
           // because of the partial object we have to cast or create a type guard
           rules.push(<IRule>rule);
@@ -200,13 +220,21 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
   ): void {
     if (
       quad.subject.value === ruleSetIri &&
-      ActorExtractLinksRuleSet.RDF_TYPE_NODE.equals(quad.predicate)
+      ActorExtractLinksRuleSet.RDF_TYPE_NODE.equals(quad.predicate) &&
+      ActorExtractLinksRuleSet.RULE_SET_CLASS.equals(quad.object)
+      
     ) {
       ruleSetInformation.isRuleSet = true;
     } else if (
+      quad.subject.value === ruleSetIri &&
       ActorExtractLinksRuleSet.RULE_SET_SUBWEB.equals(quad.predicate)
     ) {
       ruleSetInformation.subweb = quad.object.value;
+    } else if(
+      quad.subject.value === ruleSetIri &&
+      ActorExtractLinksRuleSet.RULE_SET_RULE.equals(quad.predicate)
+    ){
+      ruleSetInformation.ruleDeclared.add(quad.object.value);
     } else if (
       ActorExtractLinksRuleSet.RULE_SET_PREMISE.equals(quad.predicate) && quad
     ) {
@@ -259,11 +287,7 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
 }
 
 export interface IActorExtractLinksRuleSetArgs
-  extends IActorArgs<
-    IActionExtractLinks,
-    IActorTest,
-    IActorExtractLinksOutput
-  > {
+  extends IActorExtractLinksArgs{
   /**
    * The Dereference RDF mediator
    */
@@ -272,6 +296,7 @@ export interface IActorExtractLinksRuleSetArgs
 
 interface IRuleSetInformation {
   subweb?: string;
+  ruleDeclared: Set<string>;
   rules: Map<string, Partial<IRule>>;
   isRuleSet: boolean;
 }
