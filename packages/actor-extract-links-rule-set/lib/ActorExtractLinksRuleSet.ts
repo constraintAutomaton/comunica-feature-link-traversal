@@ -10,6 +10,7 @@ import {
   IActorTest,
   passTestVoid,
   IActorArgs,
+  failTest,
 } from "@comunica/core";
 import { DataFactory } from "rdf-data-factory";
 import type * as RDF from "@rdfjs/types";
@@ -63,7 +64,10 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
   public async test(
     action: IActionExtractLinks
   ): Promise<TestResult<IActorTest>> {
-    return passTestVoid();
+    if(action.context.has(KeyReasoning.rules)){
+      return passTestVoid();
+    }
+    return failTest(`the key ${KeyReasoning.rules.name} is not defined in the context`);
   }
 
   public async run(
@@ -271,7 +275,7 @@ export class ActorExtractLinksRuleSet extends ActorExtractLinks {
     }
   }
 
-  public injectRule(ruleSet: IRuleSet, context: IActionContext) {
+  public injectRule(ruleSet: IRuleSet, context: IActionContext):void {
     const engineRules = context.getSafe(KeyReasoning.rules);
     const rules: RDF.BaseQuad[] = [];
     for (const rule of ruleSet.rules) {
