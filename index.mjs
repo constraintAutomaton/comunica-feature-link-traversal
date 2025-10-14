@@ -6,22 +6,21 @@ import { DataFactory } from 'rdf-data-factory';
 const DF = new DataFactory();
 // https://github.com/comunica/comunica/blob/7f2c7dbf5d957b0728af4065c2c6721c43e6aeae/packages/actor-query-operation-construct/lib/BindingsToQuadsIterator.ts#L53
 
-const configPath = './engines/config-query-sparql-link-traversal/config/config-solid-default.json';
+const configPath = './config.json';
+const defaultConfig = "./engines/config-query-sparql-link-traversal/config/config-solid-default.json"
 const myEngine = await new QueryEngineFactory().create({ configPath });
 //const myEngine = await new QueryEngineFactory().create();
 
 const query = `
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-SELECT ?locationName (COUNT(?message) AS ?messages) WHERE {
-  ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me>;
-    rdf:type snvoc:Comment;
-    snvoc:isLocatedIn ?location.
-  ?location foaf:name ?locationName.
+PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
+SELECT ?messageId ?messageCreationDate ?messageContent WHERE {
+  ?message snvoc:hasCreator <http://localhost:3000/pods/00000004398046512167/profile/card#me>;
+    rdf:type snvoc:Post;
+    snvoc:content ?messageContent;
+    snvoc:creationDate ?messageCreationDate;
+    snvoc:id ?messageId.
 }
-GROUP BY ?locationName
-ORDER BY DESC (?messages)
 `;
  
 const streamProvider = new BunyanStreamProviderStdout({ level: 'debug' });
