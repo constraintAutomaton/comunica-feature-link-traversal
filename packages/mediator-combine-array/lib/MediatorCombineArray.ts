@@ -1,5 +1,19 @@
 import type { Actor, IAction, IActorOutput, IActorReply, IActorTest, IMediatorArgs, TestResult } from '@comunica/core';
 import { Mediator } from '@comunica/core';
+import { AsyncIterator, wrap } from 'asynciterator';
+import { EventEmitter } from "events";
+import { Readable } from "stream";
+
+EventEmitter.defaultMaxListeners = 20;
+
+class EventEmitterReadable extends Readable {
+  constructor(private emitter: EventEmitter, private eventName: string) {
+    super({ objectMode: true });
+    emitter.on(eventName, (data) => this.push(data));
+    emitter.on("end", () => this.push(null));
+  }
+  override _read() {} // no-op
+}
 
 /**
  * A comunica mediator that concatenates an array of all actor results.
@@ -30,6 +44,29 @@ TS = undefined,
       testResults = [];
     }
 
+    const passthroughs:EventEmitter[] = [];
+    const metadataIterators: AsyncIterator<any>[] = [];
+
+    if((<any>action).metadata && (<any>action).metadata.clone){
+      
+      for(const _ of testResults){
+        const passthrough = new EventEmitter();
+        const iterator = wrap(new EventEmitterReadable(passthrough, "data"), {autoStart:false});
+        metadataIterators.push(iterator);
+        passthroughs.push(passthrough);
+      }
+      (<any>action).metadata.on("data", (quad:any)=>{
+        for(const passthrough of passthroughs){
+          passthrough.emit("data", quad);
+        }
+      });
+      (<any>action).metadata.on("end", ()=>{
+        for(const passthrough of passthroughs){
+          passthrough.emit("end", null);
+        }
+      })
+    }
+    
     if (this.filterErrors) {
       const _testResults: IActorReply<A, I, T, O, TS>[] = [];
       for (const result of testResults) {
@@ -52,7 +89,12 @@ TS = undefined,
 
     // Run action on all actors.
     const results: O[] = await Promise.all(testResults
-      .map((result, i) => result.actor.runObservable(action, sideDatas[i]!)));
+      .map((result, i) => {
+        if((<any>action).metadata && (<any>action).metadata.clone){
+          return result.actor.runObservable({...action, metadata:metadataIterators[i]}, sideDatas[i]!);
+        }
+        return result.actor.runObservable(action, sideDatas[i]!);
+      }));
 
     // Return the combined results.
     return this.combiner(results);

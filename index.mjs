@@ -14,12 +14,20 @@ const myEngine = await new QueryEngineFactory().create({ configPath });
 const query = `
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-SELECT ?messageId ?messageCreationDate ?messageContent WHERE {
-  ?message snvoc:hasCreator <http://localhost:3000/pods/00000004398046512167/profile/card#me>;
-    rdf:type snvoc:Post;
-    snvoc:content ?messageContent;
-    snvoc:creationDate ?messageCreationDate;
-    snvoc:id ?messageId.
+SELECT ?forumId ?forumTitle ?moderatorId ?moderatorFirstName ?moderatorLastName WHERE {
+  <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118> snvoc:id ?messageId.
+  OPTIONAL {
+    <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118> (snvoc:replyOf*) ?originalPostInner.
+    ?originalPostInner rdf:type snvoc:Post.
+  }
+  BIND(COALESCE(?originalPostInner, <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118>) AS ?originalPost)
+  ?forum snvoc:containerOf ?originalPost;
+    snvoc:id ?forumId;
+    snvoc:title ?forumTitle;
+    snvoc:hasModerator ?moderator.
+  ?moderator snvoc:id ?moderatorId;
+    snvoc:firstName ?moderatorFirstName;
+    snvoc:lastName ?moderatorLastName.
 }
 `;
  

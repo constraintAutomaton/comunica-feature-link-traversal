@@ -236,7 +236,7 @@
     "@comunica/actor-query-result-serialize-stats": "^4.4.0",
     "@comunica/actor-query-result-serialize-table": "^4.4.0",
     "@comunica/actor-query-result-serialize-tree": "^4.4.0",
-    "@comunica/actor-query-source-identify-hypermedia": "file:./../../comunica/packages/actor-query-source-identify-hypermedia",
+    "@comunica/actor-query-source-identify-hypermedia": "^4.4.0",
     "@comunica/actor-query-source-identify-hypermedia-none": "^4.4.0",
     "@comunica/actor-query-source-identify-hypermedia-qpf": "^4.4.0",
     "@comunica/actor-query-source-identify-hypermedia-sparql": "^4.4.0",
