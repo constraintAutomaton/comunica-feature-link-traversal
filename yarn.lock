@@ -9887,6 +9887,36 @@ acorn@^8.11.0, acorn@^8.11.3, acorn@^8.14.0, acorn@^8.4.1, acorn@^8.5.0, acorn@^
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.14.0.tgz#063e2c70cac5fb4f6467f0b11152e04c682795b0"
   integrity sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==
 
+actor-query-source-identify-hypermedia-schema-alignment@latest:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/actor-query-source-identify-hypermedia-schema-alignment/-/actor-query-source-identify-hypermedia-schema-alignment-0.0.4.tgz#5ceccb1bb8d3aff8d084a3ce047e0147fc8538e3"
+  integrity sha512-KR8idugUhBapm4a15bQ2ost33YdD8+IEfISb3eVSJ7+lBuvAKHXVgB7veMu66l/gWlAFiYwTVdfQ3YKTxYFaDg==
+  dependencies:
+    "@comunica/actor-query-source-identify-rdfjs" "^4.4.1"
+    "@comunica/bus-dereference-rdf" "^4.4.1"
+    "@comunica/bus-merge-bindings-context" "^4.4.0"
+    "@comunica/bus-query-source-identify" "^4.4.0"
+    "@comunica/bus-query-source-identify-hypermedia" "^4.4.0"
+    "@comunica/bus-rdf-metadata" "^4.4.0"
+    "@comunica/bus-rdf-metadata-accumulate" "^4.4.0"
+    "@comunica/bus-rdf-metadata-extract" "^4.4.0"
+    "@comunica/bus-rdf-resolve-hypermedia-links" "^4.4.0"
+    "@comunica/bus-rdf-resolve-hypermedia-links-queue" "^4.4.0"
+    "@comunica/context-entries" "^4.4.1"
+    "@comunica/core" "^4.4.0"
+    "@comunica/types" "^4.4.0"
+    "@comunica/utils-bindings-factory" "^4.4.0"
+    "@comunica/utils-iterator" "^4.0.1"
+    "@comunica/utils-metadata" "^4.4.0"
+    "@rdfjs/types" "^2.0.1"
+    asynciterator "^3.9.0"
+    lru-cache "^10.0.0"
+    rdf-streaming-store "^2.1.1"
+    readable-stream "^4.5.2"
+    result-interface "^2.3.3"
+    sparqlalgebrajs "^4.3.8"
+    uri-template-lite "^23.4.0"
+
 add-stream@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/add-stream/-/add-stream-1.0.0.tgz#6a7990437ca736d5e1288db92bd3266d5f5cb2aa"
@@ -15890,6 +15920,13 @@ media-typer@0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/media-typer/-/media-typer-0.3.0.tgz#8710d7af0aa626f8fffa1ce00168545263255748"
   integrity sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==
+
+mediator-combine-array-schema-alignment@latest:
+  version "0.0.0"
+  resolved "https://registry.yarnpkg.com/mediator-combine-array-schema-alignment/-/mediator-combine-array-schema-alignment-0.0.0.tgz#c81cbfc2bd463844b370d268221fd9a6480ba232"
+  integrity sha512-JN8gTnhdJNeYib311TrzsauT3MCP5zhsxddKZ3ZSjaHoEdZp8m50S8qeZdzpCnY3tzVlMC/UtpHlW3yREIShgQ==
+  dependencies:
+    "@comunica/core" "^4.4.0"
 
 meow@^8.0.0, meow@^8.1.2:
   version "8.1.2"

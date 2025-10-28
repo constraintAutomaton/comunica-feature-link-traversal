@@ -1,85 +1,74 @@
-import { LoggerBunyan, BunyanStreamProviderStdout } from '@comunica/logger-bunyan';
-import { KeyReasoning } from '@comunica/context-entries';
-import { QueryEngineFactory } from '@comunica/query-sparql-link-traversal-solid';
-import { DataFactory } from 'rdf-data-factory';
+import {
+  LoggerBunyan,
+  BunyanStreamProviderStdout,
+} from "@comunica/logger-bunyan";
+import { KeyReasoning } from "@comunica/context-entries";
+import { QueryEngineFactory } from "@comunica/query-sparql-link-traversal-solid";
+import { DataFactory } from "rdf-data-factory";
+import Streamify from "streamify-string";
+import { rdfParser } from "rdf-parse";
+import { readFile } from "node:fs/promises";
 
 const DF = new DataFactory();
 // https://github.com/comunica/comunica/blob/7f2c7dbf5d957b0728af4065c2c6721c43e6aeae/packages/actor-query-operation-construct/lib/BindingsToQuadsIterator.ts#L53
 
-const configPath = './config.json';
-const defaultConfig = "./engines/config-query-sparql-link-traversal/config/config-solid-default.json"
+const configPath = "./config.json";
+const defaultConfig =
+  "./engines/config-query-sparql-link-traversal/config/config-solid-default.json";
 const myEngine = await new QueryEngineFactory().create({ configPath });
 //const myEngine = await new QueryEngineFactory().create();
 
 const query = `
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-SELECT ?forumId ?forumTitle ?moderatorId ?moderatorFirstName ?moderatorLastName WHERE {
-  <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118> snvoc:id ?messageId.
-  OPTIONAL {
-    <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118> (snvoc:replyOf*) ?originalPostInner.
-    ?originalPostInner rdf:type snvoc:Post.
+  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+  PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/2.0/vocabulary/>
+  SELECT ?messageId ?messageCreationDate ?messageContent WHERE {
+    ?message snvoc:hasCreator <http://localhost:3000/pods/00000000000000000933/profile/card#me>;
+      rdf:type snvoc:Post;
+      snvoc:content ?messageContent;
+      snvoc:creationDate ?messageCreationDate;
+      snvoc:id ?messageId.
   }
-  BIND(COALESCE(?originalPostInner, <http://localhost:3000/pods/00000000000000000933/posts/2012-08-31#1030792151118>) AS ?originalPost)
-  ?forum snvoc:containerOf ?originalPost;
-    snvoc:id ?forumId;
-    snvoc:title ?forumTitle;
-    snvoc:hasModerator ?moderator.
-  ?moderator snvoc:id ?moderatorId;
-    snvoc:firstName ?moderatorFirstName;
-    snvoc:lastName ?moderatorLastName.
-}
 `;
- 
-const streamProvider = new BunyanStreamProviderStdout({ level: 'debug' });
+
+const streamProvider = new BunyanStreamProviderStdout({ level: "debug" });
 const loggerParams = {
-  name: 'comunica',
-  level: 'info',
+  name: "comunica",
+  level: "info",
   streamProviders: [streamProvider],
 };
 const logger = new LoggerBunyan(loggerParams);
-
-const snvocPrefix = "https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/";
-const sameAs = DF.namedNode("http://www.w3.org/2002/07/owl#sameAs");
-/**
- * <> a ex:ruleSheet
- *   si:subweb "pod regex"
- *   ex:rules _:rules
- * _:rules ex:rule _:rule1
- * _rule1 ex:premise 
- */
-const debugRule = [
-    DF.quad(
-      DF.namedNode("http://xmlns.com/foaf/0.1/name"),
-      sameAs,
-      DF.namedNode(`http://xmlns.com/foaf/0.1/name2`)
-    ),
-    DF.quad(
-      DF.namedNode(`http://xmlns.com/foaf/0.1/name2`),
-      sameAs,
-      DF.namedNode(`http://xmlns.com/foaf/0.1/name3`)
-    )
-  ];
+const rules = [];
+const stringKg = await readFile("./rules.ttl", "utf-8");
+const streamKg = Streamify(stringKg);
+await new Promise((resolve, reject) => {
+  rdfParser
+    .parse(streamKg, { contentType: "text/turtle" })
+    .on("data", (quad) => {
+      rules.push(quad);
+    })
+    .on("error", (error) => {
+      reject(error);
+    })
+    .on("end", () => {
+      resolve();
+    });
+});
 
 const bindingsStream = await myEngine.queryBindings(query, {
   lenient: true,
   //log: logger,
-  [KeyReasoning.rules.name]: new Map([
-    ["*", debugRule]
-  ]),
+  [KeyReasoning.rules.name]: new Map([["*", rules]]),
   //sources: ["https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me"]
-
 });
 
 let i = 0;
-bindingsStream.on('data', (binding) => {
+bindingsStream.on("data", (binding) => {
   console.log(binding.toString());
   i += 1;
 });
-bindingsStream.on('end', () => {
+bindingsStream.on("end", () => {
   console.log(`there are ${i} results`);
-
 });
-bindingsStream.on('error', (error) => {
+bindingsStream.on("error", (error) => {
   console.error(error);
 });

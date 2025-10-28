@@ -3,6 +3,7 @@ import { Mediator } from '@comunica/core';
 import { AsyncIterator, wrap } from 'asynciterator';
 import { EventEmitter } from "events";
 import { Readable } from "stream";
+import { PassThrough } from 'stream';
 
 EventEmitter.defaultMaxListeners = 20;
 
@@ -44,25 +45,25 @@ TS = undefined,
       testResults = [];
     }
 
-    const passthroughs:EventEmitter[] = [];
+    const passthroughs:PassThrough[] = [];
     const metadataIterators: AsyncIterator<any>[] = [];
 
     if((<any>action).metadata && (<any>action).metadata.clone){
       
       for(const _ of testResults){
-        const passthrough = new EventEmitter();
-        const iterator = wrap(new EventEmitterReadable(passthrough, "data"), {autoStart:false});
+        const passthrough = new PassThrough({ objectMode: true });
+        const iterator = wrap(passthrough, {autoStart:false});
         metadataIterators.push(iterator);
         passthroughs.push(passthrough);
       }
       (<any>action).metadata.on("data", (quad:any)=>{
         for(const passthrough of passthroughs){
-          passthrough.emit("data", quad);
+          passthrough.write(quad);
         }
       });
       (<any>action).metadata.on("end", ()=>{
         for(const passthrough of passthroughs){
-          passthrough.emit("end", null);
+          passthrough.end();
         }
       })
     }
