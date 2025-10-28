@@ -1,6 +1,6 @@
 {
   "name": "query-sparql-link-traversal-solid-schema-alignment",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "A Comunica engine for link traversal-based query evaluation over Solid data pods",
   "lsd:module": true,
   "license": "MIT",

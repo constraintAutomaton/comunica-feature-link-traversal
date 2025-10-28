@@ -2,19 +2,10 @@ import type { Actor, IAction, IActorOutput, IActorReply, IActorTest, IMediatorAr
 import { Mediator } from '@comunica/core';
 import { AsyncIterator, wrap } from 'asynciterator';
 import { EventEmitter } from "events";
-import { Readable } from "stream";
-import { PassThrough } from 'stream';
+import { PassThrough } from 'readable-stream';
+
 
 EventEmitter.defaultMaxListeners = 20;
-
-class EventEmitterReadable extends Readable {
-  constructor(private emitter: EventEmitter, private eventName: string) {
-    super({ objectMode: true });
-    emitter.on(eventName, (data) => this.push(data));
-    emitter.on("end", () => this.push(null));
-  }
-  override _read() {} // no-op
-}
 
 /**
  * A comunica mediator that concatenates an array of all actor results.

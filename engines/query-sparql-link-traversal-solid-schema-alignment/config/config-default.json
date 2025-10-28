@@ -9,7 +9,7 @@
     "ccqs:config/context-preprocess/actors.json",
     "ccqslt:config/context-preprocess/actors.json",
     "ccqs:config/context-preprocess/mediators.json",
-    "ccqslt:config/extract-links/mediators.json",
+    "mediators.json",
     "ccqs:config/expression-evaluator-factory/actors.json",
     "ccqs:config/expression-evaluator-factory/mediators.json",
     "ccqs:config/function-factory/actors.json",
@@ -35,7 +35,12 @@
     "ccqs:config/query-process/mediators.json",
     "ccqs:config/query-result-serialize/actors.json",
     "ccqs:config/query-result-serialize/mediators.json",
-    "ccqslt:config/query-source-identify/actors_schema_alignment.json",
+
+    "hypermedia_schema_alignment.json",
+    "ccqs:config/query-source-identify/actors/rdfjs.json",
+    "ccqs:config/query-source-identify/actors/serialized.json",
+
+
     "ccqs:config/query-source-identify/mediators.json",
     "ccqs:config/query-source-identify-hypermedia/actors.json",
     "ccqs:config/query-source-identify-hypermedia/mediators.json",
@@ -71,6 +76,13 @@
     "ccqs:config/rdf-update-quads/actors.json",
     "ccqs:config/rdf-update-quads/mediators.json",
     "ccqs:config/term-comparator-factory/actors.json",
-    "ccqs:config/term-comparator-factory/mediators.json"
+    "ccqs:config/term-comparator-factory/mediators.json",
+
+    "ccqslt:config/extract-links/actors/predicates-common.json",
+    "ccqslt:config/extract-links/actors/predicates-ldp.json",
+    "ccqslt:config/extract-links/actors/links-describedby.json",
+    "ccqslt:config/extract-links/actors/predicates-solidstorage.json",
+    "ccqslt:config/extract-links/actors/quad-pattern-query.json",
+    "ccqslt:config/extract-links/actors/solid-type-index-noinference.json"
   ]
 }
