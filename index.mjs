@@ -59,12 +59,17 @@ await new Promise((resolve, reject) => {
 });
 
 const ruleMap = new Map([["*", rules]]);
+const info = {
+  links:[],
+  schemaAlignment: []
+}
 
 const bindingsStream = await myEngine.queryBindings(query, {
   lenient: true,
   //log: logger,
   [KeyReasoning.rules.name]:ruleMap ,
   "@comunica/actor-context-preprocess-query-source-reasoning:activate": true,
+  '@comunica/actor-context-preprocess-query-source-reasoning:runtimeInfo': info,
   //sources: ["https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me"]
 });
 
@@ -74,7 +79,7 @@ bindingsStream.on("data", (binding) => {
   i += 1;
 });
 bindingsStream.on("end", () => {
-  //console.log(util.inspect(ruleMap, { showHidden: false, depth: null, colors: true }));
+  console.log(util.inspect(info.schemaAlignment.map((el)=> el.subweb), { showHidden: false, depth: null, colors: true }));
   console.log(`there are ${i} results`);
 });
 bindingsStream.on("error", (error) => {
