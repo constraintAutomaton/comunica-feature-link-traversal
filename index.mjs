@@ -8,6 +8,7 @@ import { DataFactory } from "rdf-data-factory";
 import Streamify from "streamify-string";
 import { rdfParser } from "rdf-parse";
 import { readFile } from "node:fs/promises";
+import util from 'util';
 
 const DF = new DataFactory();
 // https://github.com/comunica/comunica/blob/7f2c7dbf5d957b0728af4065c2c6721c43e6aeae/packages/actor-query-operation-construct/lib/BindingsToQuadsIterator.ts#L53
@@ -19,15 +20,18 @@ const myEngine = await new QueryEngineFactory().create({ configPath });
 //const myEngine = await new QueryEngineFactory().create();
 
 const query = `
-  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-  PREFIX snvoc: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/2.0/vocabulary/>
-  SELECT ?messageId ?messageCreationDate ?messageContent WHERE {
-    ?message snvoc:hasCreator <http://localhost:3000/pods/00000000000000000933/profile/card#me>;
-      rdf:type snvoc:Post;
-      snvoc:content ?messageContent;
-      snvoc:creationDate ?messageCreationDate;
-      snvoc:id ?messageId.
-  }
+PREFIX snvoc: <http://localhost:4099/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
+
+SELECT DISTINCT ?creator ?messageContent
+WHERE {
+  <http://localhost:4099/pods/00000000000000000933/profile/card#me> <https://localhost:4099/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/likes> _:g_0 .
+  _:g_0 (snvoc:hasPost | snvoc:hasComment) ?message .
+  ?message snvoc:hasCreator ?creator .
+  ?otherMessage snvoc:hasCreator ?creator ;
+                snvoc:content ?messageContent .
+}
+LIMIT 5
+
 `;
 
 const streamProvider = new BunyanStreamProviderStdout({ level: "debug" });
@@ -54,10 +58,13 @@ await new Promise((resolve, reject) => {
     });
 });
 
+const ruleMap = new Map([["*", rules]]);
+
 const bindingsStream = await myEngine.queryBindings(query, {
   lenient: true,
   //log: logger,
-  [KeyReasoning.rules.name]: new Map([["*", rules]]),
+  [KeyReasoning.rules.name]:ruleMap ,
+  "@comunica/actor-context-preprocess-query-source-reasoning:activate": true,
   //sources: ["https://solidbench.linkeddatafragments.org/pods/00000000000000000933/profile/card#me"]
 });
 
@@ -67,6 +74,7 @@ bindingsStream.on("data", (binding) => {
   i += 1;
 });
 bindingsStream.on("end", () => {
+  //console.log(util.inspect(ruleMap, { showHidden: false, depth: null, colors: true }));
   console.log(`there are ${i} results`);
 });
 bindingsStream.on("error", (error) => {

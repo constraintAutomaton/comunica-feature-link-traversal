@@ -1,0 +1,23 @@
+@prefix ex: <https://exemple.com#> .
+@prefix semmap: <https://semanticmapping.org/vocab#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix svnoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>.
+
+[]
+    a semmap:RuleSet ;
+    # Defines where the rules apply. "*" means the rules are valid for all subwebs.
+    semmap:subweb "*" ;
+    # Lists any rules disable by the engine.
+    # See https://mapping-commons.github.io/sssom/spec-model/ for the list of all the valid rules.
+    semmap:disallowedRules (ex:randomAlignment) ;
+    # Declares the rules included in this rule set.
+    semmap:rule _:rule1 .
+
+_:rule1
+    # RDF term that serves as the starting point for the alignment.
+    semmap:premise svnoc:hasCreator ;
+    # The semantic relationship between the premise and conclusion.
+    # See https://mapping-commons.github.io/sssom/spec-model/ for the list of all the valid rules.
+    semmap:inference skos:exactMatch ;
+    # RDF term that the premise is aligned to.
+    semmap:conclusion svnoc:hasAuthor .

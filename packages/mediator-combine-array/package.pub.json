@@ -1,6 +1,6 @@
 {
   "name": "mediator-combine-array-schema-alignment",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A combine-array mediator",
   "lsd:module": true,
   "license": "MIT",

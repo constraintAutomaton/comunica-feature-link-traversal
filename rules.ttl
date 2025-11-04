@@ -1,9 +1,10 @@
-@prefix snvocv1: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>.
-@prefix snvocv2: <http://localhost:3000/www.ldbc.eu/ldbc_socialnet/2.0/vocabulary/>.
-@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix semmap: <https://semanticmapping.org/vocab#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix snvoc: <http://localhost:4099/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> .
+@prefix snvocHttps: <https://localhost:4099/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> .
 
-snvocv1:hasCreator owl:sameAs snvocv2:hasCreator.
-snvocv1:Post owl:sameAs snvocv2:Post.
-snvocv1:content owl:sameAs snvocv2:content.
-snvocv1:creationDate owl:sameAs snvocv2:creationDate.
-snvocv1:id owl:sameAs snvocv2:id.
+snvoc:likes skos:exactMatch snvocHttps:likes.
+#snvoc:hasPost skos:exactMatch snvocHttps:hasPost.
+#snvoc:hasComment skos:exactMatch snvocHttps:hasComment.
+#snvoc:hasCreator skos:exactMatch snvocHttps:hasCreator.
+#snvoc:content skos:exactMatch snvocHttps:content.

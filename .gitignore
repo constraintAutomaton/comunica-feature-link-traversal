@@ -2,6 +2,7 @@ node_modules
 .husky/_
 .rdf-test-suite-cache
 .idea
+.zed
 .vscode
 lerna-debug.log
 yarn-error.log

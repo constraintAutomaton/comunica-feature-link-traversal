@@ -2,6 +2,7 @@ import { KeysRdfResolveHypermediaLinks } from '@comunica/context-entries-link-tr
 import type { ICliArgsHandler } from '@comunica/types';
 import type { Argv } from 'yargs';
 
+
 export class CliArgsHandlerAnnotateSources implements ICliArgsHandler {
   public populateYargs(argumentsBuilder: Argv<any>): Argv<any> {
     return argumentsBuilder
@@ -21,4 +22,5 @@ export class CliArgsHandlerAnnotateSources implements ICliArgsHandler {
       context[KeysRdfResolveHypermediaLinks.annotateSources.name] = args.annotateSources;
     }
   }
+
 }

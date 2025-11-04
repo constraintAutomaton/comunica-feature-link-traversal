@@ -3,7 +3,7 @@ import { KeysInitQuery } from '@comunica/context-entries';
 import { ActionContext } from '@comunica/core';
 import { CliArgsHandlerSolidAuth } from '@comunica/query-sparql-solid';
 import { runArgsInProcess } from '@comunica/runner-cli';
-import { CliArgsHandlerAnnotateSources } from '../lib/CliArgsHandlerAnnotateSources';
+import { CliArgsHandlerSchemaAlignment } from '../lib/CliArgsHandlerSchemaAlignment';
 
 const cliArgsHandlerSolidAuth = new CliArgsHandlerSolidAuth();
 // eslint-disable-next-line node/no-path-concat
@@ -11,7 +11,7 @@ runArgsInProcess(`${__dirname}/../`, `${__dirname}/../config/config-default.json
   context: new ActionContext({
     [KeysInitQuery.cliArgsHandlers.name]: [
       cliArgsHandlerSolidAuth,
-      new CliArgsHandlerAnnotateSources(),
+      new CliArgsHandlerSchemaAlignment(),
     ],
   }),
   onDone() {

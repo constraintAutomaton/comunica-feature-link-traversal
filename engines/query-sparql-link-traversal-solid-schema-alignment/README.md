@@ -1,112 +1,133 @@
-# Comunica SPARQL Link Traversal
+# Comunica SPARQL Link Traversal Schema Alignment
 
-[![npm version](https://badge.fury.io/js/%40comunica%2Fquery-sparql-link-traversal-solid.svg)](https://www.npmjs.com/package/@comunica/query-sparql-link-traversal-solid)
-[![Docker Pulls](https://img.shields.io/docker/pulls/comunica/query-sparql-link-traversal-solid.svg)](https://hub.docker.com/r/comunica/query-sparql-link-traversal-solid/)
 
-Comunica SPARQL Link Traversal Solid is a SPARQL query engine for JavaScript that follows links across documents within [Solid](https://solidproject.org/) data pods.
+Comunica SPARQL Link Traversal Solid Schema Alignment is a SPARQL query engine for JavaScript that follows links across documents including [Solid](https://solidproject.org/) data pods.
+Schema alignement rules can be provided to the engine, to write queries with multiple vocabularies
 
 **Warning: due to the uncontrolled nature of the Web, it is recommended to always enable [lenient mode](https://comunica.dev/docs/query/advanced/context/#4--lenient-execution) when doing link traversal.**
 
-This module is part of the [Comunica framework](https://comunica.dev/).
+This module is a non-official extension part of the [Comunica framework](https://comunica.dev/).
 
 ## Install
 
 ```bash
-$ yarn add @comunica/query-sparql-link-traversal-solid
+$ yarn add query-sparql-link-traversal-solid-schema-alignment
 ```
 
 or
 
 ```bash
-$ npm install -g @comunica/query-sparql-link-traversal-solid
+$ npm install -g query-sparql-link-traversal-solid-schema-alignment
 ```
+## Usage as a CLI tool
 
-## Usage
 
-Execute a query over a Solid pod
-by authenticating through the https://solidcommunity.net/ identity provider
-(when using https://pod.inrupt.com/, your IDP will be https://login.inrupt.com/):
+Execute a query over resources
 
 ```bash
-$ comunica-sparql-link-traversal-solid --idp https://solidcommunity.net/ \
+$ comunica-sparql-link-traversal-schema-alignment --idp void \
   "PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
   SELECT DISTINCT ?forumId ?forumTitle WHERE {
-    ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card#me>.
+    ?message snvoc:hasAuthor <https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card#me>.
     ?forum snvoc:containerOf ?message;
       snvoc:id ?forumId;
       snvoc:title ?forumTitle.
-  }" --lenient
+  }" --idp void --lenient --onlineSchemaAlignment --rules ./alignment_rules.ttl
 ```
+Given a rule file (`./alignment_rules.ttl`) following this template
 
-This command will connect with the given identity provider,
-and open your browser to log in with your WebID.
-After logging in, the query engine will be able to access all the documents you have access to.
+```ttl
+@prefix ex: <https://exemple.com#> .
+@prefix semmap: <https://semanticmapping.org/vocab#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix svnoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>.
 
-If you want to disable the login step, you can pass `--idp void`.
+[]
+    a semmap:RuleSet ;
+    # Defines where the rules apply. "*" means the rules are valid for all subwebs.
+    semmap:subweb "*" ;
+    # Lists any rules disable by the engine.
+    # See https://mapping-commons.github.io/sssom/spec-model/ for the list of all the valid rules.
+    semmap:disallowedRules (ex:randomAlignment) ;
+    # Declares the rules included in this rule set.
+    semmap:rule _:rule1 .
 
-If no sources are provided, the URLs inside the query will be considered starting sources.
-Since passing sources is optional, the following is equivalent:
-
-```bash
-$ comunica-sparql-link-traversal-solid https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card \
- --idp https://solidcommunity.net/ \
-  "PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
-  SELECT DISTINCT ?forumId ?forumTitle WHERE {
-    ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card#me>.
-    ?forum snvoc:containerOf ?message;
-      snvoc:id ?forumId;
-      snvoc:title ?forumTitle.
-  }" --lenient
+_:rule1
+    # RDF term that serves as the starting point for the alignment.
+    semmap:premise svnoc:hasCreator ;
+    # The semantic relationship between the premise and conclusion.
+    # See https://mapping-commons.github.io/sssom/spec-model/ for the list of all the valid rules.
+    semmap:inference skos:exactMatch ;
+    # RDF term that the premise is aligned to.
+    semmap:conclusion svnoc:hasAuthor .
 ```
 
 Show the help with all options:
 
 ```bash
-$ comunica-sparql-link-traversal-solid --help
+$ comunica-sparql-link-traversal-schema-alignment --help
 ```
 
 Just like [Comunica SPARQL](https://github.com/comunica/comunica/tree/master/engines/query-sparql),
-a [dynamic variant](https://github.com/comunica/comunica/tree/master/engines/query-sparql#usage-from-the-command-line) (`comunica-dynamic-sparql-link-traversal`) also exists.
+a [dynamic variant](https://github.com/comunica/comunica/tree/master/engines/query-sparql#usage-from-the-command-line) (`comunica-dynamic-sparql-link-traversal-schema-alignment`) also exists.
 
 _[**Read more** about querying from the command line](https://comunica.dev/docs/query/getting_started/query_cli/)._
 
-### Usage within application
+
+## Usage within application
 
 This engine can be used in JavaScript/TypeScript applications as follows:
 
 ```javascript
-const QueryEngine = require('@comunica/query-sparql-link-traversal-solid').QueryEngine;
-const {interactiveLogin} = require('solid-node-interactive-auth');
+const QueryEngine = require('query-sparql-link-traversal-solid-schema-alignment').QueryEngine;
+const DataFactory = require('rdf-data-factory').DataFactory
 
-// This will open your Web browser to log in
-const session = await interactiveLogin({oidcIssuer: 'https://solidcommunity.net/'});
+const DF = new DataFactory();
 const myEngine = new QueryEngine();
+
+const snvocPrefix = "https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/";
+const skosPrefix = "http://www.w3.org/2004/02/skos/core#";
+
+const rules = [
+  DF.quad(
+    DF.namedNode(`${snvocPrefix}hasCreator`),
+    DF.namedNode(`${skosPrefix}exactMatch`),
+    DF.namedNode(`${snvocPrefix}hasAuthor`),
+  ),
+  DF.quad(
+    DF.namedNode(`${snvocPrefix}id`),
+    DF.namedNode(`${skosPrefix}exactMatch`),
+    DF.namedNode(`${snvocPrefix}uuid`),
+  ),
+];
+
+const ruleMap = new Map([["*", rules]]);
 
 const bindingsStream = await myEngine.queryBindings(`
   PREFIX snvoc: <https://solidbench.linkeddatafragments.org/www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/>
   SELECT DISTINCT ?forumId ?forumTitle WHERE {
-    ?message snvoc:hasCreator <https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card#me>.
+    ?message snvoc:hasAuthor <https://solidbench.linkeddatafragments.org/pods/00000006597069767117/profile/card#me>.
     ?forum snvoc:containerOf ?message;
-      snvoc:id ?forumId;
+      snvoc:uuid ?forumId;
       snvoc:title ?forumTitle.
   }`, {
-    // Sources field is optional. Will be derived from query if not provided.
-    //sources: [session.info.webId], // Sets your profile as query source
-    '@comunica/actor-http-inrupt-solid-client-authn:session': session,
     lenient: true,
+    "@comunica/actor-context-preprocess-query-source-reasoning:activate": true,
+    '@comunica/actor-context-preprocess-query-source-reasoning:disallowedOnlineRules': []
+    '@comunica/actor-context-preprocess-query-source-reasoning:rules':ruleMap,
 });
 
 // Consume results as a stream (best performance)
 bindingsStream.on('data', (binding) => {
     console.log(binding.toString()); // Quick way to print bindings for testing
 
-    console.log(binding.has('s')); // Will be true
+    console.log(binding.has('forumId')); // Will be true
 
     // Obtaining values
-    console.log(binding.get('s').value);
-    console.log(binding.get('s').termType);
-    console.log(binding.get('p').value);
-    console.log(binding.get('o').value);
+    console.log(binding.get('forumId').value);
+    console.log(binding.get('forumId').termType);
+    console.log(binding.get('forumTitle').value);
+    console.log(binding.get('forumTitle').value);
 });
 bindingsStream.on('end', () => {
     // The data-listener will not be called anymore once we get here.
@@ -117,8 +138,8 @@ bindingsStream.on('error', (error) => {
 
 // Consume results as an array (easier)
 const bindings = await bindingsStream.toArray();
-console.log(bindings[0].get('s').value);
-console.log(bindings[0].get('s').termType);
+console.log(bindings[0].get('forumId').value);
+console.log(bindings[0].get('forumId').termType);
 ```
 
 _[**Read more** about querying an application](https://comunica.dev/docs/query/getting_started/query_app/)._
@@ -129,7 +150,7 @@ Start a webservice exposing traversal via the SPARQL protocol, i.e., a _SPARQL e
 by authenticating through the https://solidcommunity.net/ identity provider.
 
 ```bash
-$ comunica-sparql-link-traversal-solid-http --idp https://solidcommunity.net/ \
+$ comunica-sparql-link-traversal-schema-alignment-http --idp https://solidcommunity.net/ \
   --lenient
 ```
 
@@ -137,14 +158,14 @@ Start a webservice exposing traversal from https://www.rubensworks.net/ via the 
 by authenticating through the https://solidcommunity.net/ identity provider.
 
 ```bash
-$ comunica-sparql-link-traversal-solid-http --idp https://solidcommunity.net/ \
+$ comunica-sparql-link-traversal-schema-alignment-http --idp https://solidcommunity.net/ \
   https://www.rubensworks.net/ --lenient
 ```
 
 Show the help with all options:
 
 ```bash
-$ comunica-sparql-link-traversal-solid-http --help
+$ comunica-sparql-link-traversal-schema-alignment-http --help
 ```
 
 The SPARQL endpoint can only be started dynamically.

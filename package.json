@@ -14,6 +14,7 @@
     "comunica/packages/actor-query-source-identify-hypermedia-reasoning-wrapper"
   ],
   "scripts": {
+    "index":"yarn node index.mjs",
     "test-changed": "lerna run test --since HEAD",
     "build-changed": "lerna run build --since HEAD",
     "test:unit": "jest packages/",

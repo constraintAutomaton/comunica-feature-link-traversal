@@ -37,9 +37,9 @@
     "access": "public"
   },
   "bin": {
-    "comunica-sparql-link-traversal-solid": "bin/query.js",
-    "comunica-sparql-link-traversal-solid-http": "bin/http.js",
-    "comunica-dynamic-sparql-link-traversal-solid": "bin/query-dynamic.js"
+    "comunica-sparql-link-traversal-schema-alignment": "bin/query.js",
+    "comunica-sparql-link-traversal-schema-alignment-http": "bin/http.js",
+    "comunica-dynamic-sparql-link-traversal-schema-alignment": "bin/query-dynamic.js"
   },
   "files": [
     "bin/**/*.d.ts",
@@ -237,7 +237,6 @@
     "@comunica/actor-query-result-serialize-stats": "^4.4.0",
     "@comunica/actor-query-result-serialize-table": "^4.4.0",
     "@comunica/actor-query-result-serialize-tree": "^4.4.0",
-    "actor-query-source-identify-hypermedia-schema-alignment": "latest",
     "@comunica/actor-query-source-identify-hypermedia-none": "^4.4.0",
     "@comunica/actor-query-source-identify-hypermedia-qpf": "^4.4.0",
     "@comunica/actor-query-source-identify-hypermedia-sparql": "^4.4.0",
@@ -301,16 +300,21 @@
     "@comunica/core": "^4.4.0",
     "@comunica/logger-void": "^4.4.0",
     "@comunica/mediator-all": "^4.4.0",
-    "mediator-combine-array-schema-alignment": "latest",
     "@comunica/mediator-combine-pipeline": "^4.4.0",
     "@comunica/mediator-combine-union": "^4.4.0",
     "@comunica/mediator-join-coefficients-fixed": "^4.4.0",
     "@comunica/mediator-number": "^4.4.0",
     "@comunica/mediator-race": "^4.4.0",
+    "@comunica/query-sparql-rdfjs": "^4.4.1",
     "@comunica/query-sparql-solid": "^4.0.2",
     "@comunica/runner": "^4.4.0",
     "@comunica/runner-cli": "^4.4.0",
     "@comunica/types": "^4.4.0",
+    "actor-query-source-identify-hypermedia-schema-alignment": "latest",
+    "mediator-combine-array-schema-alignment": "latest",
+    "n3": "^1.26.0",
+    "rdf-data-factory": "^2.0.2",
+    "result-interface": "^2.3.3",
     "yargs": "^17.7.2"
   },
   "browser": {

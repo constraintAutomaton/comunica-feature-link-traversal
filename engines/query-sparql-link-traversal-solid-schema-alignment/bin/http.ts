@@ -2,7 +2,7 @@
 /* eslint-disable node/no-path-concat */
 import { HttpServiceSparqlEndpoint } from '@comunica/actor-init-query';
 import { CliArgsHandlerSolidAuth } from '@comunica/query-sparql-solid';
-import { CliArgsHandlerAnnotateSources } from '../lib/CliArgsHandlerAnnotateSources';
+import { CliArgsHandlerSchemaAlignment } from '../lib/CliArgsHandlerSchemaAlignment';
 
 const defaultConfigPath = `${__dirname}/../config/config-default.json`;
 
@@ -18,6 +18,6 @@ HttpServiceSparqlEndpoint.runArgsInProcess(
   },
   [
     new CliArgsHandlerSolidAuth(),
-    new CliArgsHandlerAnnotateSources(),
+    new CliArgsHandlerSchemaAlignment(),
   ],
 ).catch(error => process.stderr.write(`${error.message}/n`));
