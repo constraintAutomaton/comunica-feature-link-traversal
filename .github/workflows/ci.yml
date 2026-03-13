@@ -279,7 +279,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: performance-benchmark-solidbench
           path: performance/benchmark-solidbench/combinations/combination_0/output/
